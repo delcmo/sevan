@@ -36,3 +36,9 @@
 *.zip
 *.gz
 *.e
+*.lo
+*.d
+.libs/
+*-opt
+lib/
+.DS_Store
