@@ -12,27 +12,36 @@
 /*            See COPYRIGHT for full restrictions               */
 /****************************************************************/
 
-#ifndef VARIABLETIMESAREAAUX_H
-#define VARIABLETIMESAREAAUX_H
+#ifndef VARIABLEFORDISSIPATIVETERM_H
+#define VARIABLEFORDISSIPATIVETERM_H
 
 #include "AuxKernel.h"
+#include "EquationOfState.h"
 
-class VariableTimesAreaAux;
+//Forward Declarations
+class VariableForDissipativeTerm;
 
 template<>
-InputParameters validParams<VariableTimesAreaAux>();
+InputParameters validParams<VariableForDissipativeTerm>();
 
-class VariableTimesAreaAux : public AuxKernel
+class VariableForDissipativeTerm : public AuxKernel
 {
 public:
 
-  VariableTimesAreaAux(const std::string & name, InputParameters parameters);
+  VariableForDissipativeTerm(const std::string & name, InputParameters parameters);
 
 protected:
   virtual Real computeValue();
 
-    VariableValue & _var;
+    VariableValue & _alA_liq;
+    VariableValue & _alrhoA;
+    VariableValue & _alrhouA_x;
+    VariableValue & _alrhouA_y;
+    VariableValue & _alrhouA_z;
+    VariableValue & _alrhoEA;
     VariableValue & _area;
+    const EquationOfState & _eos;
+    bool _isLiquid;
 };
 
-#endif //VariableTimesAreaAUX_H
+#endif //PRESSUREAUX_H

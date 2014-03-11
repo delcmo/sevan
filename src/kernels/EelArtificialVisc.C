@@ -36,6 +36,7 @@ InputParameters validParams<EelArtificialVisc>()
     params.addRequiredCoupledVar("internal_energy", "internal energy of the fluid");
     params.addRequiredCoupledVar("area", "area of the geometry");
     params.addRequiredCoupledVar("vf_liquid", "liquid void fraction");
+    params.addCoupledVar("var_for_void_fraction", "Variable used for the dissipative term of the void fraction and computed by the auxkernel VariableForDissipativeTerm.C");
     params.addRequiredParam<UserObjectName>("eos", "Equation of state");
   return params;
 }
@@ -50,18 +51,18 @@ EelArtificialVisc::EelArtificialVisc(const std::string & name,
     _diff_type("ENTROPY, PARABOLIC, INVALID", "INVALID"),
     // Boolean
     _isLiquid(getParam<bool>("isLiquid")),
-    // Boolean for HEM:
-    _isHEM(getParam<bool>("isHEM")),
     // Coupled auxilary variables
     _rho(coupledValue("density")),
     _pressure(coupledValue("pressure")),
     _grad_rho(coupledGradient("density")),
+    _grad_press(coupledGradient("pressure")),
     _vel_x(coupledValue("velocity_x")),
-    _vel_y(_dim>=2 ? coupledValue("velocity_y") : _zero),
-    _vel_z(_dim==3 ? coupledValue("velocity_z") : _zero),
+    _vel_y(_mesh.dimension()>=2 ? coupledValue("velocity_y") : _zero),
+    _vel_z(_mesh.dimension()==3 ? coupledValue("velocity_z") : _zero),
     _grad_vel_x(coupledGradient("velocity_x")),
-    _grad_vel_y(_dim>=2 ? coupledGradient("velocity_y") : _grad_zero),
-    _grad_vel_z(_dim==3 ? coupledGradient("velocity_z") : _grad_zero),
+    _grad_vel_y(_mesh.dimension()>=2 ? coupledGradient("velocity_y") : _grad_zero),
+    _grad_vel_z(_mesh.dimension()==3 ? coupledGradient("velocity_z") : _grad_zero),
+    _rhoe(coupledValue("internal_energy")),
     _grad_rhoe(coupledGradient("internal_energy")),
     _area(coupledValue("area")),
     _alpha_liq(coupledValue("vf_liquid")),
@@ -81,65 +82,69 @@ EelArtificialVisc::EelArtificialVisc(const std::string & name,
 
 Real EelArtificialVisc::computeQpResidual()
 {
-    // Viscosity coefficient: mu
-    Real _mu = (1-(double)_isLiquid)*_mu_gas[_qp] + (double)_isLiquid*_mu_liq[_qp];
-    Real _kappa = (1-(double)_isLiquid)*_kappa_gas[_qp] + (double)_isLiquid*_kappa_liq[_qp];
-    if (_isHEM) _mu = std::min(_mu_liq[_qp], _mu_gas[_qp]);
+//    Real _h = _current_elem->hmin();
     
+    // Viscosity coefficient: mu
+    Real mu = _isLiquid ? _mu_liq[_qp] : _mu_gas[_qp];
+    Real kappa = _isLiquid ? _kappa_liq[_qp] : _kappa_gas[_qp];
+    Real beta = _beta[_qp];
+
     // Determine if cell is on boundary or not:
     Real _isOnbnd = 1.;
     if (_current_elem->node(_i) == 0 || _current_elem->node(_i) == _mesh.nNodes()-1)
         _isOnbnd = 0.;
-    
+
     // If statement on diffusion type:
     if (_diff_type == 1) {
-        return _mu * _grad_u[_qp] * _grad_test[_i][_qp];
+        return mu * _grad_u[_qp] * _grad_test[_i][_qp];
     }
     else if (_diff_type == 0) {
-    // Phase void fraction:
-    Real _alpha = (1-(double)_isLiquid)*(1-_alpha_liq[_qp]) + (double)_isLiquid*_alpha_liq[_qp];
-    RealVectorValue _grad_alpha = -(1-(double)_isLiquid)*_grad_alpha_liq[_qp] + (double)_isLiquid*_grad_alpha_liq[_qp];
-        
-    // Symmetric gradient of velocity:
-    TensorValue<Real> _grad_vel_tensor(_grad_vel_x[_qp], _grad_vel_y[_qp], _grad_vel_z[_qp]);
-    TensorValue<Real> _grad_vel_tensor_sym = ( _grad_vel_tensor + _grad_vel_tensor.transpose() ) * 0.5 * _rho[_qp] * _mu;
-    
-    // Compute f = kappa * grad(rho):
-    RealVectorValue _f(_kappa*_grad_rho[_qp](0), _kappa*_grad_rho[_qp](1), _kappa*_grad_rho[_qp](2));
-        
-    // Compute velocity vector and its norm:
-    RealVectorValue _vel_vector(_vel_x[_qp], _vel_y[_qp], _vel_z[_qp]);
-    Real _norm_vel2 = _vel_vector.size_sq();
-    
-    // Compute h = kappa * grad(rho*e):
-    RealVectorValue _h(_kappa*_grad_rhoe[_qp](0), _kappa*_grad_rhoe[_qp](1), _kappa*_grad_rhoe[_qp](2));
-        
-    // Compute term for void fraction equation:
-    Real _temp = _eos.temperature_from_p_rho(_pressure[_qp], _rho[_qp]);
-    Real _s_rho = -_pressure[_qp]/(_rho[_qp]*_rho[_qp]*_temp);
-        
-    // return the dissipative terms:
-    RealVectorValue _row_f_cross_vel;
-    RealVectorValue _row_grad_vel_tensor;
+        // Phase void fraction:
+        Real alpha = _isLiquid ? _alpha_liq[_qp] : (1-_alpha_liq[_qp]);
+        RealVectorValue grad_alpha = _isLiquid ? _grad_alpha_liq[_qp] : -_grad_alpha_liq[_qp];
+
+        // Symmetric gradient of velocity:
+        TensorValue<Real> _grad_vel_tensor(_grad_vel_x[_qp], _grad_vel_y[_qp], _grad_vel_z[_qp]);
+        TensorValue<Real> _grad_vel_tensor_sym = ( _grad_vel_tensor + _grad_vel_tensor.transpose() ) * 0.5 * _rho[_qp] * mu;
+
+        // Compute l = beta * grad(alpha):
+        RealVectorValue l_k = grad_alpha;
+        l_k *= beta;
+
+        // Compute f = kappa * grad(rho):
+        RealVectorValue f_k = _grad_rho[_qp];
+        f_k *= alpha * kappa;
+        f_k += _rho[_qp] * l_k;
+
+        // Compute velocity vector and its norm:
+        RealVectorValue _vel_vector(_vel_x[_qp], _vel_y[_qp], _vel_z[_qp]);
+        Real _norm_vel2 = _vel_vector.size_sq();
+
+        // Compute h = kappa * grad(rho*e):
+        RealVectorValue h_k = _grad_rhoe[_qp];
+        h_k *= alpha * kappa;
+
+        // return the dissipative terms:
+        RealVectorValue _row_f_cross_vel;
+        RealVectorValue _row_grad_vel_tensor;
             switch (_equ_type) {
                 case VOID_FRACTION:
-                    //return _isOnbnd * _area[_qp] * _beta[_qp] * _grad_alpha * _grad_test[_i][_qp];
-                    return _isOnbnd*_area[_qp]*_alpha*_beta[_qp]*_s_rho*_grad_rho[_qp]*_grad_test[_i][_qp];
+                    return _isOnbnd * _area[_qp] * l_k * _grad_test[_i][_qp];
                     break;
                 case CONTINUITY: // div(kappa grad(rho))
-                    return _isOnbnd * _alpha * _area[_qp] * _f * _grad_test[_i][_qp];
+                    return _isOnbnd * _area[_qp] * f_k * _grad_test[_i][_qp];
                     break;
                 case XMOMENTUM:
-                    return _isOnbnd * _alpha * _area[_qp] * ( _vel_x[_qp]*_f + _mu*_rho[_qp]*_grad_vel_x[_qp] ) * _grad_test[_i][_qp];
+                    return _isOnbnd * _area[_qp] * ( _vel_x[_qp]*f_k + mu*alpha*_rho[_qp]*_grad_vel_x[_qp] ) * _grad_test[_i][_qp];
                     break;
                 case YMOMENTUM:
-                    return _isOnbnd * _alpha * _area[_qp] * ( _vel_y[_qp]*_f + _mu*_rho[_qp]*_grad_vel_y[_qp] ) * _grad_test[_i][_qp];
+                    return _isOnbnd * _area[_qp] * ( _vel_y[_qp]*f_k + mu*alpha*_rho[_qp]*_grad_vel_y[_qp] ) * _grad_test[_i][_qp];
                     break;
                 case ZMOMENTUM:
-                    return _isOnbnd * _alpha * _area[_qp] * ( _vel_z[_qp]*_f + _mu*_rho[_qp]*_grad_vel_z[_qp] ) * _grad_test[_i][_qp];
+                    return _isOnbnd * _area[_qp] * ( _vel_z[_qp]*f_k + mu*alpha*_rho[_qp]*_grad_vel_z[_qp] ) * _grad_test[_i][_qp];
                     break;
                 case ENERGY:
-                    return _isOnbnd * _alpha * _area[_qp] * ( _h + 0.5*_f*_norm_vel2 + _grad_vel_tensor_sym*_vel_vector )*_grad_test[_i][_qp];
+                    return _isOnbnd * _area[_qp] * ( h_k + 0.5*f_k*_norm_vel2 + _grad_vel_tensor_sym*_vel_vector +  _rhoe[_qp]*l_k )*_grad_test[_i][_qp];
                     break;
                 default:
                     mooseError("INVALID equation name.");

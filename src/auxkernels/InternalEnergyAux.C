@@ -38,8 +38,8 @@ InternalEnergyAux::InternalEnergyAux(const std::string & name, InputParameters p
     // Coupled variables:
     _alrhoA(coupledValue("alrhoA")),
     _alrhouA_x(coupledValue("alrhouA_x")),
-    _alrhouA_y(_dim>=2 ? coupledValue("alrhouA_y") : _zero),
-    _alrhouA_z(_dim==3 ? coupledValue("alrhouA_z") : _zero),
+    _alrhouA_y(_mesh.dimension()>=2 ? coupledValue("alrhouA_y") : _zero),
+    _alrhouA_z(_mesh.dimension()==3 ? coupledValue("alrhouA_z") : _zero),
     _alrhoEA(coupledValue("alrhoEA")),
     // Aux variables:
     _alpha_liq(coupledValue("vf_liquid")),

@@ -37,28 +37,28 @@ EelMass::EelMass(const std::string & name,
     _isLiquid(getParam<bool>("isLiquid")),
     // Coupled aux variables
     _alrhouA_x(coupledValue("alrhouA_x")),
-    _alrhouA_y(_dim>=2 ? coupledValue("alrhouA_y") : _zero ),
-    _alrhouA_z(_dim==3 ? coupledValue("alrhouA_z") : _zero ),
+    _alrhouA_y(_mesh.dimension()>=2 ? coupledValue("alrhouA_y") : _zero ),
+    _alrhouA_z(_mesh.dimension()==3 ? coupledValue("alrhouA_z") : _zero ),
     // Coupled aux variable:
     _area(coupledValue("area")),
     // Material properties:
     _Aint(getMaterialProperty<Real>("interfacial_area")),
-    _Omega(getMaterialProperty<Real>("mass_transfer"))
+    _Omega_gas(getMaterialProperty<Real>("mass_transfer"))
 {}
 
 Real EelMass::computeQpResidual()
 {
     // Sign: the sign of some terms is phase dependent (+ if liquid, - otherwise).
-    Real _sign = -(1-(double)_isLiquid) + (double)_isLiquid;
+    Real _sign = _isLiquid ? -1. : 1.;
     
     // Compute convective part of the continuity equation:
     RealVectorValue _conv(_alrhouA_x[_qp], _alrhouA_y[_qp], _alrhouA_z[_qp]);
     
     // Mass transfer source terms:
-    Real _mass = _sign*_area[_qp]*_Omega[_qp]*_Aint[_qp];
+    Real _mass = _sign*_area[_qp]*_Omega_gas[_qp]*_Aint[_qp];
     
     // Return the total expression for the continuity equation:
-    return -_conv * _grad_test[_i][_qp] + _mass*_test[_i][_qp];
+    return -_conv * _grad_test[_i][_qp] - _mass*_test[_i][_qp];
 }
 
 Real EelMass::computeQpJacobian()

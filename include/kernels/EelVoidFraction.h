@@ -47,7 +47,7 @@ private:
     MaterialProperty<Real> & _P_rel;
     MaterialProperty<Real> & _rhoI;
     MaterialProperty<Real> & _Aint;
-    MaterialProperty<Real> & _Omega;
+    MaterialProperty<Real> & _Omega_gas;
 };
 
 #endif // VOIDFRACTION_H

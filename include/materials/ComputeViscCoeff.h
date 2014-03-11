@@ -30,40 +30,57 @@ private:
         FIRST_ORDER_MACH = 2,
         ENTROPY = 3
     };
+    
+    // Function Mach number
+    enum FctOfMachType
+    {
+        MACH = 0,
+        SQRT_MACH = 1,
+        FCT_OF_MACH = 2
+    };
+    
     // Artificial diffusion name
     std::string _visc_name;
+    
     // Aritifical diffusion type
     MooseEnum _visc_type;
+    
+    std::string _fct_of_mach_name;
+    MooseEnum _fct_of_mach_type;
+    
     // Boolean for phase
     bool _isLiquid;
+    bool _useVelPps;
+    
     // Liquid void fraction:
     VariableValue & _alpha_l;
     VariableValue & _alpha_l_old;
+    VariableValue & _alpha_l_older;
     VariableGradient & _grad_alpha_l;
-    VariableGradient & _grad_alpha_l_old;
+    
     // Coupled aux variables
     VariableValue & _vel_x;
     VariableValue & _vel_y;
     VariableValue & _vel_z;
-    VariableValue & _vel_x_old;
-    VariableValue & _vel_y_old;
-    VariableValue & _vel_z_old;
     VariableGradient & _grad_vel_x;
+    
     // Pressure:
     VariableValue & _pressure;
     VariableValue & _pressure_old;
-    VariableValue & _pressure2; // other pressure phase
+    VariableValue & _pressure_older;
     VariableGradient & _grad_press;
-    VariableGradient & _grad_press_old;
+    
     // Density:
     VariableValue & _rho;
     VariableValue & _rho_old;
+    VariableValue & _rho_older;
     VariableGradient & _grad_rho;
-    VariableGradient & _grad_rho_old;
+    
     // Variables for jump:
     VariableValue & _jump_grad_press;
     VariableValue & _jump_grad_dens;
     VariableValue & _jump_grad_alpha;
+    
     // Norm of the velocity:
     VariableValue & _norm_vel;
     // Material properties: viscosity coefficients.
@@ -73,6 +90,7 @@ private:
     MaterialProperty<Real> & _kappa_max;
     MaterialProperty<Real> & _beta;
     MaterialProperty<Real> & _beta_max;
+    
     // Interfactial variable:
     MaterialProperty<Real> & _PIbar;
     MaterialProperty<Real> & _Prel;

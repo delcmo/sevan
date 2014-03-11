@@ -34,6 +34,7 @@ temp_init_right = 453.
 alpha_init_left = 0.5
 alpha_init_right = 0.5
 membrane = 0.5
+length = 1.
 []
 
 #############################################################################
@@ -72,12 +73,56 @@ membrane = 0.5
     type = JumpGradientInterface
     variable = pressure_aux_g
     jump_name = jump_grad_press_aux_g
+    execute_on = timestep_begin
+  [../]
+
+  [./JumpGradDensLiq]
+    type = JumpGradientInterface
+    variable = density_aux_l
+    jump_name = jump_grad_dens_aux_l
+    execute_on = timestep_begin
+  [../]
+
+  [./JumpGradDensGas]
+    type = JumpGradientInterface
+    variable = density_aux_g
+    jump_name = jump_grad_dens_aux_g
+    execute_on = timestep_begin
+  [../]
+
+  [./SmoothJumpGradDensGas]
+    type = SmoothFunction
+    variable = jump_grad_dens_aux_g
+    var_name = smooth_jump_grad_dens_aux_g
+    execute_on = timestep_begin
+  [../]
+
+  [./SmoothJumpGradPressGas]
+    type = SmoothFunction
+    variable = jump_grad_press_aux_g
+    var_name = smooth_jump_grad_press_aux_g
+    execute_on = timestep_begin
+  [../]
+
+  [./SmoothJumpGradDensLiq]
+    type = SmoothFunction
+    variable = jump_grad_dens_aux_l
+    var_name = smooth_jump_grad_dens_aux_l
+    execute_on = timestep_begin
+  [../]
+
+  [./SmoothJumpGradPressLiq]
+    type = SmoothFunction
+    variable = jump_grad_press_aux_l
+    var_name = smooth_jump_grad_press_aux_l
+    execute_on = timestep_begin
   [../]
 
   [./JumpGradAlphaLiq]
     type = JumpGradientInterface
     variable = alpha_aux_l
     jump_name = jump_grad_alpha_aux_l
+    execute_on = timestep_begin
   [../]
 []
 
@@ -85,7 +130,7 @@ membrane = 0.5
 [Mesh]
   type = GeneratedMesh
   dim = 1
-  nx = 50
+  nx = 100
   xmin = 0
   xmax = 1
   block_id = '0'
@@ -250,6 +295,58 @@ membrane = 0.5
     eos = eos_liq
   [../]
 
+  [./VoidFractionViscLiq]
+    type = EelArtificialVisc
+    variable = alA_l
+    equation_name = VOID_FRACTION
+    density = density_aux_l
+    pressure = pressure_aux_l
+    velocity_x =   velocity_x_aux_l
+    internal_energy = internal_energy_aux_l
+    area = area_aux
+    vf_liquid = alpha_aux_l
+    eos = eos_liq
+  [../]
+
+  [./MassViscLiq]
+    type = EelArtificialVisc
+    variable = alrhoA_l
+    equation_name = CONTINUITY
+    density = density_aux_l
+    pressure = pressure_aux_l
+    velocity_x = velocity_x_aux_l
+    internal_energy = internal_energy_aux_l
+    area = area_aux
+    vf_liquid = alpha_aux_l
+    eos = eos_liq
+  [../]
+
+  [./MomViscLiq]
+    type = EelArtificialVisc
+    variable = alrhouA_l
+    equation_name = XMOMENTUM
+    density = density_aux_l
+    pressure = pressure_aux_l
+    velocity_x = velocity_x_aux_l
+    internal_energy = internal_energy_aux_l
+    area = area_aux
+    vf_liquid = alpha_aux_l
+    eos  =eos_liq
+  [../]
+
+  [./EnergyViscLiq]
+    type = EelArtificialVisc
+    variable = alrhoEA_l
+    equation_name = ENERGY
+    density = density_aux_l
+    pressure = pressure_aux_l
+    velocity_x = velocity_x_aux_l
+    internal_energy = internal_energy_aux_l
+    area = area_aux
+    vf_liquid = alpha_aux_l
+    eos = eos_liq
+  [../]
+
 ######### Gas phase ##########
   [./MassTimeGas]
     type = EelTimeDerivative
@@ -299,6 +396,47 @@ membrane = 0.5
     eos = eos_gas
   [../]
 
+  [./MassViscGas]
+    type = EelArtificialVisc
+    variable = alrhoA_g
+    equation_name = CONTINUITY
+    density = density_aux_g
+    pressure = pressure_aux_g
+    velocity_x = velocity_x_aux_g
+    internal_energy = internal_energy_aux_g
+    area = area_aux
+    vf_liquid = alpha_aux_l
+    isLiquid = false
+    eos  =eos_gas
+  [../]
+
+  [./MomViscGas]
+    type = EelArtificialVisc
+    variable = alrhouA_g
+    equation_name = XMOMENTUM
+    density = density_aux_g
+    pressure = pressure_aux_g
+    velocity_x = velocity_x_aux_g
+    internal_energy = internal_energy_aux_g
+    area = area_aux
+    vf_liquid = alpha_aux_l
+    isLiquid = false
+    eos = eos_gas
+  [../]
+
+  [./EnergyViscGas]
+    type = EelArtificialVisc
+    variable = alrhoEA_g
+    equation_name = ENERGY
+    density = density_aux_g
+    pressure = pressure_aux_g
+    velocity_x = velocity_x_aux_g
+    internal_energy = internal_energy_aux_g
+    area = area_aux
+    vf_liquid = alpha_aux_l
+    isLiquid = false
+    eos = eos_gas
+  [../]
 []
 
 ##############################################################################################
@@ -386,20 +524,13 @@ membrane = 0.5
     family = MONOMIAL
     order = CONSTANT
   [../]
+
 ######### Liquid phase ##########
    [./velocity_x_aux_l]
       family = LAGRANGE
    [../]
 
-  [./vel_area_x_aux_l]
-    family = LAGRANGE
-  [../]
-
    [./density_aux_l]
-      family = LAGRANGE
-   [../]
-
-   [./total_energy_aux_l]
       family = LAGRANGE
    [../]
 
@@ -419,6 +550,26 @@ membrane = 0.5
     family = LAGRANGE
    [../]
 
+  [./mu_max_aux_l]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./kappa_max_aux_l]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./mu_aux_l]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./kappa_aux_l]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
   [./jump_grad_press_aux_l]
     family = MONOMIAL
     order = CONSTANT
@@ -428,20 +579,28 @@ membrane = 0.5
     family = MONOMIAL
     order = CONSTANT
   [../]
+
+ [./jump_grad_dens_aux_l]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./smooth_jump_grad_press_aux_l]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./smooth_jump_grad_dens_aux_l]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
 ######### Gas phase ##########
   [./velocity_x_aux_g]
     family = LAGRANGE
   [../]
 
-  [./vel_area_x_aux_g]
-    family = LAGRANGE
-  [../]
-
   [./density_aux_g]
-    family = LAGRANGE
-  [../]
-
-  [./total_energy_aux_g]
     family = LAGRANGE
   [../]
 
@@ -461,10 +620,46 @@ membrane = 0.5
     family = LAGRANGE
   [../]
 
+  [./mu_max_aux_g]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./kappa_max_aux_g]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./mu_aux_g]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./kappa_aux_g]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
   [./jump_grad_press_aux_g]
     family = MONOMIAL
     order = CONSTANT
   [../]
+
+  [./jump_grad_dens_aux_g]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./smooth_jump_grad_press_aux_g]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./smooth_jump_grad_dens_aux_g]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
 []
 
 ##############################################################################################
@@ -568,25 +763,10 @@ membrane = 0.5
     alrhouA = alrhouA_l
   [../]
 
-  [./VelAreaAKLiq]
-    type = VariableTimesAreaAux
-    variable = vel_area_x_aux_l
-    var = velocity_x_aux_l
-    area = area_aux
-  [../]
-
   [./DensAKLiq]
     type = DensityAux
     variable = density_aux_l
     alrhoA = alrhoA_l
-    vf_liquid = alpha_aux_l
-    area = area_aux
-  [../]
-
-  [./TotEnerAKLiq]
-    type = TotalEnergyAux
-    variable = total_energy_aux_l
-    alrhoEA = alrhoEA_l
     vf_liquid = alpha_aux_l
     area = area_aux
   [../]
@@ -625,6 +805,42 @@ membrane = 0.5
     variable = norm_velocity_aux_l
     x_component = velocity_x_aux_l
   [../]
+
+  [./MuMaxAKLiq]
+    type = MaterialRealAux
+    variable = mu_max_aux_l
+    property = mu_max_liq
+  [../]
+
+  [./KappaMaxAKLiq]
+    type = MaterialRealAux
+    variable = kappa_max_aux_l
+    property = kappa_max_liq
+  [../]
+
+  [./MuAKLiq]
+    type = MaterialRealAux
+    variable = mu_aux_l
+    property = mu_liq
+  [../]
+
+  [./KappaAKLiq]
+    type = MaterialRealAux
+    variable = kappa_aux_l
+    property = kappa_liq
+  [../]
+
+  [./BetaMaxAKLiq]
+    type = MaterialRealAux
+    variable = beta_max_aux
+    property = beta_max
+  [../]
+
+  [./BetaAKLiq]
+    type = MaterialRealAux
+    variable = beta_aux
+    property = beta
+  [../]
 ####### Gas phase ##########
   [./VelAKGas]
     type = VelocityAux
@@ -633,26 +849,10 @@ membrane = 0.5
     alrhouA = alrhouA_g
   [../]
 
-  [./VelAreaAKGas]
-    type = VariableTimesAreaAux
-    variable = vel_area_x_aux_g
-    var = velocity_x_aux_g
-    area = area_aux
-  [../]
-
   [./DensAKGas]
     type = DensityAux
     variable = density_aux_g
     alrhoA = alrhoA_g
-    vf_liquid = alpha_aux_l
-    area = area_aux
-    isLiquid = false
-  [../]
-
-  [./TotEnerAKGas]
-    type = TotalEnergyAux
-    variable = total_energy_aux_g
-    alrhoEA = alrhoEA_g
     vf_liquid = alpha_aux_l
     area = area_aux
     isLiquid = false
@@ -695,6 +895,31 @@ membrane = 0.5
     x_component = velocity_x_aux_g
   [../]
 
+
+  [./MuMaxAKGas]
+    type = MaterialRealAux
+    variable = mu_max_aux_g
+    property = mu_max_gas
+  [../]
+
+  [./KappaMaxAKGas]
+    type = MaterialRealAux
+    variable = kappa_max_aux_g
+    property = kappa_max_gas
+  [../]
+
+  [./MuAKGas]
+    type = MaterialRealAux
+    variable = mu_aux_g
+    property = mu_gas
+  [../]
+
+  [./KappaAKGas]
+    type = MaterialRealAux
+    variable = kappa_aux_g
+    property = kappa_gas
+  [../]
+
 []
 
 ##############################################################################################
@@ -704,25 +929,41 @@ membrane = 0.5
 ##############################################################################################
 
 [Materials]
-
   [./ViscCoeffLiq]
     type = ComputeViscCoeff
     block = '0'
     velocity_x = velocity_x_aux_l
     pressure = pressure_aux_l
-    pressure2 = pressure_aux_g
     density = density_aux_l
+    jump_grad_press = smooth_jump_grad_press_aux_l
+    jump_grad_dens = smooth_jump_grad_dens_aux_l
+    jump_grad_alpha = jump_grad_alpha_aux_l
     vf_liquid = alpha_aux_l
     norm_velocity = norm_velocity_aux_l
     eos = eos_liq
-    velocity_PPS_name = MaxVelocityGas
+    velocity_PPS_name = MaxVelocityLiq
     alpha_PPS_name = AverageAlphaLiq
+  [../]
+
+  [./ViscCoeffGas]
+    type = ComputeViscCoeff
+    block = '0'
+    velocity_x = velocity_x_aux_g
+    pressure = pressure_aux_g
+    density = density_aux_g
+    #jump_grad_press = smooth_jump_grad_press_aux_g
+    jump_grad_dens = smooth_jump_grad_dens_aux_g
+    vf_liquid = alpha_aux_l
+    norm_velocity = norm_velocity_aux_g
+    eos = eos_gas
+    velocity_PPS_name = MaxVelocityGas
+    isLiquid = false
   [../]
 
   [./InterfacialRelaxationTransfer]
     type = InterfacialRelaxationTransfer
     block = '0'
-    Aint = 0.#1.e5
+    Aint = 1.e5
     velocity_x_liq = velocity_x_aux_l
     pressure_liq = pressure_aux_l
     density_liq = density_aux_l
@@ -744,16 +985,19 @@ membrane = 0.5
   [./AverageAlphaLiq]
     type = ElementAverageValue
     variable = alpha_aux_l
+    #execute_on = timestep_begin
   [../]
 
   [./MaxVelocityLiq]
-    type = NodalMaxValue
-    variable = velocity_x_aux_l
+    type = ElementAverageValue # NodalMaxValue
+    variable = norm_velocity_aux_l
+    #execute_on = timestep_begin
   [../]
 
   [./MaxVelocityGas]
-    type = NodalMaxValue
-    variable = velocity_x_aux_g
+    type = ElementAverageValue # NodalMaxValue
+    variable = norm_velocity_aux_g
+    #execute_on = timestep_begin
   [../]
 []
 
@@ -933,14 +1177,14 @@ membrane = 0.5
     solve_type = 'PJFNK'
     petsc_options_iname = '-mat_fd_coloring_err  -mat_fd_type  -mat_mffd_type'
     petsc_options_value = '1.e-12       ds             ds'
+#line_search = 'none'
   [../]
 
   [./SMP]
     type=SMP
     full=true
-    petsc_options = '-snes_mf_operator'
-    petsc_options_iname = '-pc_type'
-    petsc_options_value = 'lu'
+    solve_type = 'PJFNK'
+    line_search = 'none'
   [../]
 []
 
@@ -952,20 +1196,24 @@ membrane = 0.5
 
 [Executioner]
   type = Transient
-  string scheme = 'bdf2'
+  scheme = 'bdf2'
   #num_steps = 10
-  end_time = 0.56
+  end_time = 0.20
   #dt = 1.e-4
   dtmin = 1e-9
   l_tol = 1e-8
-  nl_rel_tol = 1e-4
-  nl_abs_tol = 1e-4
+  nl_rel_tol = 1e-7
+  nl_abs_tol = 1e-6
   l_max_its = 50
-  nl_max_its = 50
+  nl_max_its = 15
 [./TimeStepper]
     type = FunctionDT
-    time_t =  '0.     1.e-2   2.e-2  0.56'
-    time_dt = '1e-4   1e-4    1e-3    1e-3'
+    time_t =  '0.      1.e-5   0.56'
+    time_dt = '1.e-5   1.e-4   1.e-4'
+  [../]
+  [./Quadrature]
+    type = TRAP
+    #order = FIFTH
   [../]
 []
 
@@ -976,8 +1224,9 @@ membrane = 0.5
 ##############################################################################################
 
 [Output]
+#  file_base = Nozzle1DIntOn_nel100_mu1_out
   output_initial = true
-  interval = 1
+  interval = 10
   exodus = true
   postprocessor_screen = false
   perf_log = true

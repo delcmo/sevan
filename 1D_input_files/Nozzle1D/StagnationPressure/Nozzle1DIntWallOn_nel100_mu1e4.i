@@ -9,32 +9,43 @@ order = FIRST
 viscosity_name = ENTROPY
 diffusion_name = ENTROPY
 Ce = 1
+#useVelPps = false
+#function_of_mach = FCT_OF_MACH
 
 ###### Mass and heat transfer ######
-isMassOn = false
-isHeatOn = false
+isMassOn = true
+isHeatOn = true
+
+###### Wall, friction and gravity #######
+isWallHeatOn = false
+isWallFrictOn = true
+gravity = '0., 0., 0.'
+Twall = 400.
+wall_heat_liq_value = 1.5e4
+wall_heat_gas_value = 0.
+wall_frict_liq_value = 0.1
+wall_frict_gas_value = 0.1
 
 ###### Boundary Conditions ######
-p0_bc = 1.e6
-T0_bc = 453.
-gamma0_bc = 0.
-alpha0_bc = 0.5
+p0_bc = 0.505e6
+T0_bc = 400. # 395.208
+alpha0_bc = 0.9999
 p_bc = 0.5e6
-T_bc = 453.
+T_bc = 395.208
 gamma_bc = 0.
-alpha_bc = 0.5
+alpha_bc = 0.9999
 
 ###### Initial Conditions #######
-pressure_init_left = 1e6
+pressure_init_left = 0.505e6
 pressure_init_right = 0.5e6
 vel_init_left = 0
 vel_init_right = 0
-temp_init_left = 453.
-temp_init_right = 453.
-alpha_init_left = 0.5
-alpha_init_right = 0.5
+temp_init_left = 400. # 395.208
+temp_init_right = 395.208
+alpha_init_left = 0.9999
+alpha_init_right = 0.9999
 membrane = 0.5
-length = 0.
+length = 1.
 []
 
 #############################################################################
@@ -90,7 +101,7 @@ length = 0.
     execute_on = timestep_begin
   [../]
 
-  [./SmoothJumpGradDensLiq]
+  [./SmoothJumpGradDensGas]
     type = SmoothFunction
     variable = jump_grad_dens_aux_g
     var_name = smooth_jump_grad_dens_aux_g
@@ -101,14 +112,28 @@ length = 0.
     type = SmoothFunction
     variable = jump_grad_press_aux_g
     var_name = smooth_jump_grad_press_aux_g
-    execute_on = residual
+    execute_on = timestep_begin
+  [../]
+
+  [./SmoothJumpGradDensLiq]
+    type = SmoothFunction
+    variable = jump_grad_dens_aux_l
+    var_name = smooth_jump_grad_dens_aux_l
+    execute_on = timestep_begin
+  [../]
+
+  [./SmoothJumpGradPressLiq]
+    type = SmoothFunction
+    variable = jump_grad_press_aux_l
+    var_name = smooth_jump_grad_press_aux_l
+    execute_on = timestep_begin
   [../]
 
   [./JumpGradAlphaLiq]
     type = JumpGradientInterface
     variable = alpha_aux_l
     jump_name = jump_grad_alpha_aux_l
-    execute_on = residual
+    execute_on = timestep_begin
   [../]
 []
 
@@ -116,7 +141,7 @@ length = 0.
 [Mesh]
   type = GeneratedMesh
   dim = 1
-  nx = 50
+  nx = 100
   xmin = 0
   xmax = 1
   block_id = '0'
@@ -130,8 +155,8 @@ length = 0.
 
 [Functions]
   [./area]
-    type = ParsedFunction
-    value = (1+0.5*cos(2*pi*x))
+    type = ConstantFunction
+    value = 1.e-4
   [../]
 []
 
@@ -144,7 +169,7 @@ length = 0.
 ####### LIQUID PHASE ########
   [./alA_l]
     family = LAGRANGE
-    scaling = 1e-2
+    scaling = 1e+0
     [./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -154,7 +179,7 @@ length = 0.
 
   [./alrhoA_l]
     family = LAGRANGE
-    scaling = 1e-2
+    scaling = 1e+0
 	[./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -164,7 +189,7 @@ length = 0.
 
   [./alrhouA_l]
     family = LAGRANGE
-    scaling = 1e-4
+    scaling = 1e+0
 	[./InitialCondition]
         type = ConstantIC
         value = 0.
@@ -173,7 +198,7 @@ length = 0.
 
   [./alrhoEA_l]
     family = LAGRANGE
-    scaling = 1e-7
+    scaling = 1e+0
 	[./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -184,7 +209,7 @@ length = 0.
 ####### VAPOR PHASE ########
   [./alrhoA_g]
     family = LAGRANGE
-    scaling = 1e-2
+    scaling = 1e+0
     [./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -195,7 +220,7 @@ length = 0.
 
   [./alrhouA_g]
     family = LAGRANGE
-    scaling = 1e-4
+    scaling = 1e+0
     [./InitialCondition]
         type = ConstantIC
         value = 0.
@@ -204,7 +229,7 @@ length = 0.
 
   [./alrhoEA_g]
     family = LAGRANGE
-    scaling = 1e-7
+    scaling = 1e+0
     [./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -291,6 +316,7 @@ length = 0.
     internal_energy = internal_energy_aux_l
     area = area_aux
     vf_liquid = alpha_aux_l
+    var_for_void_fraction = var_for_diss_term_aux_l
     eos = eos_liq
   [../]
 
@@ -304,6 +330,7 @@ length = 0.
     internal_energy = internal_energy_aux_l
     area = area_aux
     vf_liquid = alpha_aux_l
+    var_for_void_fraction = var_for_diss_term_aux_l
     eos = eos_liq
   [../]
 
@@ -317,6 +344,7 @@ length = 0.
     internal_energy = internal_energy_aux_l
     area = area_aux
     vf_liquid = alpha_aux_l
+    var_for_void_fraction = var_for_diss_term_aux_l
     eos  =eos_liq
   [../]
 
@@ -330,6 +358,7 @@ length = 0.
     internal_energy = internal_energy_aux_l
     area = area_aux
     vf_liquid = alpha_aux_l
+    var_for_void_fraction = var_for_diss_term_aux_l
     eos = eos_liq
   [../]
 
@@ -520,7 +549,7 @@ length = 0.
       family = LAGRANGE
    [../]
 
-   [./total_energy_aux_l]
+   [./var_for_diss_term_aux_l]
       family = LAGRANGE
    [../]
 
@@ -575,10 +604,15 @@ length = 0.
     order = CONSTANT
   [../]
 
-#  [./smooth_jump_grad_press_aux_l]
-#    family = MONOMIAL
-#    order = CONSTANT
-#  [../]
+  [./smooth_jump_grad_press_aux_l]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./smooth_jump_grad_dens_aux_l]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
 
 ######### Gas phase ##########
   [./velocity_x_aux_g]
@@ -586,10 +620,6 @@ length = 0.
   [../]
 
   [./density_aux_g]
-    family = LAGRANGE
-  [../]
-
-  [./total_energy_aux_g]
     family = LAGRANGE
   [../]
 
@@ -760,12 +790,15 @@ length = 0.
     area = area_aux
   [../]
 
-  [./TotEnerAKLiq]
-    type = TotalEnergyAux
-    variable = total_energy_aux_l
+  [./VarForDissTermAKLiq]
+    type = VariableForDissipativeTerm
+    variable = var_for_diss_term_aux_l
+    alphaA_liq = alA_l
+    alrhoA = alrhoA_l
+    alrhouA_x = alrhouA_l
     alrhoEA = alrhoEA_l
-    vf_liquid = alpha_aux_l
     area = area_aux
+    eos = eos_liq
   [../]
 
   [./IntEnerAKLiq]
@@ -855,15 +888,6 @@ length = 0.
     isLiquid = false
   [../]
 
-  [./TotEnerAKGas]
-    type = TotalEnergyAux
-    variable = total_energy_aux_g
-    alrhoEA = alrhoEA_g
-    vf_liquid = alpha_aux_l
-    area = area_aux
-    isLiquid = false
-  [../]
-
   [./IntEnerAKGas]
     type = InternalEnergyAux
     variable = internal_energy_aux_g
@@ -940,10 +964,10 @@ length = 0.
     block = '0'
     velocity_x = velocity_x_aux_l
     pressure = pressure_aux_l
-    pressure2 = pressure_aux_g
     density = density_aux_l
-    jump_grad_press = jump_grad_press_aux_l
-    jump_grad_dens = jump_grad_dens_aux_l
+    jump_grad_press = smooth_jump_grad_press_aux_l
+    jump_grad_dens = smooth_jump_grad_dens_aux_l
+    #jump_grad_alpha = jump_grad_alpha_aux_l
     vf_liquid = alpha_aux_l
     norm_velocity = norm_velocity_aux_l
     eos = eos_liq
@@ -956,7 +980,6 @@ length = 0.
     block = '0'
     velocity_x = velocity_x_aux_g
     pressure = pressure_aux_g
-    pressure2 = pressure_aux_l
     density = density_aux_g
     jump_grad_press = smooth_jump_grad_press_aux_g
     jump_grad_dens = smooth_jump_grad_dens_aux_g
@@ -964,14 +987,13 @@ length = 0.
     norm_velocity = norm_velocity_aux_g
     eos = eos_gas
     velocity_PPS_name = MaxVelocityGas
-    alpha_PPS_name = AverageAlphaLiq
     isLiquid = false
   [../]
 
   [./InterfacialRelaxationTransfer]
     type = InterfacialRelaxationTransfer
     block = '0'
-    Aint = 0.#1.e5
+    Aint = 1.e8
     velocity_x_liq = velocity_x_aux_l
     pressure_liq = pressure_aux_l
     density_liq = density_aux_l
@@ -993,19 +1015,19 @@ length = 0.
   [./AverageAlphaLiq]
     type = ElementAverageValue
     variable = alpha_aux_l
-    execute_on = timestep_begin
+    #execute_on = timestep_begin
   [../]
 
   [./MaxVelocityLiq]
-    type = NodalMaxValue
+    type = ElementAverageValue # NodalMaxValue
     variable = norm_velocity_aux_l
-    execute_on = timestep_begin
+    #execute_on = timestep_begin
   [../]
 
   [./MaxVelocityGas]
-    type = NodalMaxValue
+    type = ElementAverageValue # NodalMaxValue
     variable = norm_velocity_aux_g
-    execute_on = timestep_begin
+    #execute_on = timestep_begin
   [../]
 []
 
@@ -1019,7 +1041,7 @@ length = 0.
   [./VoidFractionLeftLiq]
     type = DirichletBC
     variable = alA_l
-    value = 0.75
+    value = 0.9999e-4
     boundary = 'left'
   [../]
 ######## Liquid phase ########
@@ -1185,7 +1207,7 @@ length = 0.
     solve_type = 'PJFNK'
     petsc_options_iname = '-mat_fd_coloring_err  -mat_fd_type  -mat_mffd_type'
     petsc_options_value = '1.e-12       ds             ds'
-    line_search = 'l2'
+#line_search = 'none'
   [../]
 
   [./SMP]
@@ -1204,20 +1226,25 @@ length = 0.
 
 [Executioner]
   type = Transient
-  string scheme = 'bdf2'
+  scheme = 'bdf2'
   #num_steps = 10
-  end_time = 0.56
+  end_time = 10
   #dt = 1.e-4
   dtmin = 1e-9
   l_tol = 1e-8
-  nl_rel_tol = 1e-6
-  nl_abs_tol = 1e-5
+  nl_rel_tol = 1e-8
+  nl_abs_tol = 1e-7
   l_max_its = 50
-  nl_max_its = 10
+  nl_max_its = 40
 [./TimeStepper]
     type = FunctionDT
-    time_t =  '0.     1.e-6     0.56'
-    time_dt = '1e-4   1.e-4     1e-2'
+    time_t =  '0.      2.e-3    0.56'
+    time_dt = '1.e-4   1.e-3    1.e-3'
+  [../]
+  [./Quadrature]
+    type = TRAP
+#    type = GAUSS
+#    order = THIRD
   [../]
 []
 
@@ -1228,8 +1255,9 @@ length = 0.
 ##############################################################################################
 
 [Output]
+#  file_base = Nozzle1DIntOn_nel100_mu1_out
   output_initial = true
-  interval = 10
+  interval = 1
   exodus = true
   postprocessor_screen = false
   perf_log = true

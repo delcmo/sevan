@@ -39,36 +39,37 @@ protected:
     VOID_FRACTION = 6
     };
 
-  /// Eqn. name to be read from input file
+    /// Eqn. name to be read from input file
     std::string _eqn_name;
-  /// which equation (mass/momentum/energy) this BC is acting on
+    /// which equation (mass/momentum/energy) this BC is acting on
     MooseEnum _eqn_type;
 
-  /// Coupled variables
+    /// Coupled variables
     VariableValue & _alrhoA;
     VariableValue & _alrhouA_n;
-    
-  /// Coupled aux variables:
+
+    /// Coupled aux variables:
+    VariableValue & _press_other_phase;
     VariableValue & _area;
 
-  /// Specified stagnation variables:
+    /// Specified stagnation variables:
     Real _p0_bc;
     Real _T0_bc;
-    Real _T0_bc_gas; // if different from liquid phase
     Real _gamma0_bc;
     Real _alpha_bc_l;
 
-  /// Calculated rho_0, K, etc. on the boundary:
+    /// Calculated rho_0, K, etc. on the boundary:
     Real _rho0_bc;
     Real _H0_bc;
     Real _K;
     Real _H_bar;
 
-   /// Equation of state:
+    /// Equation of state:
     const EquationOfState & _eos;
-    
+
     // Boolean phase
     bool _isLiquid;
+    bool _is5EquModel;
 };
 
 #endif // EELSTAGNATIONPANDTBC_H

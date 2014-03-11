@@ -32,7 +32,7 @@ EelStaticPandTBC::EelStaticPandTBC(const std::string & name, InputParameters par
     _eqn_type("CONTINUITY, XMOMENTUM, YMOMENTUM, ENERGY, INVALID", "INVALID"),
     // Coupled variables:
     _vel_x(coupledValue("vel_x")),
-    _vel_y(_dim>=2 ? coupledValue("vel_y") : _zero),
+    _vel_y(_mesh.dimension()>=2 ? coupledValue("vel_y") : _zero),
     _area(isCoupled("area") ? coupledValue("area") : _zero),
     _temperature(coupledValue("temperature")),
     _alpha_l(isCoupled("vf_liquid") ? coupledValue("vf_liquid") : _zero),

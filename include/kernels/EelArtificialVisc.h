@@ -59,33 +59,38 @@ private:
     // Diffusion name
     std::string _equ_name;
     std::string _diff_name;
+    
     // Diffusion type
     MooseEnum _equ_type;
     MooseEnum _diff_type;
+    
     // Boolean for phase
     bool _isLiquid;
-    // Boolean forn HEM:
-    bool _isHEM;
+    
     // Coupled aux variables:
     VariableValue & _rho;
     VariableValue & _pressure;
     VariableGradient & _grad_rho;
+    VariableGradient & _grad_press;
     VariableValue & _vel_x;
     VariableValue & _vel_y;
     VariableValue & _vel_z;
     VariableGradient & _grad_vel_x;
     VariableGradient & _grad_vel_y;
     VariableGradient & _grad_vel_z;
+    VariableValue & _rhoe;
     VariableGradient & _grad_rhoe;
     VariableValue & _area;
     VariableValue & _alpha_liq;
     VariableGradient & _grad_alpha_liq;
+    
     // Material property: viscosity coefficient.
     MaterialProperty<Real> & _mu_liq;
     MaterialProperty<Real> & _mu_gas;
     MaterialProperty<Real> & _kappa_liq;
     MaterialProperty<Real> & _kappa_gas;
     MaterialProperty<Real> & _beta;
+    
     // Equation of state:
     const EquationOfState & _eos;
 };

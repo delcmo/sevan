@@ -6,33 +6,35 @@
 [GlobalParams]
 ###### Other parameters #######
 order = FIRST
-viscosity_name = FIRST_ORDER
+viscosity_name = ENTROPY
 diffusion_name = ENTROPY
+Ce = 1
+
+###### Mass and heat transfer ######
+isMassOn = false
+isHeatOn = false
 
 ###### Boundary Conditions ######
-p0_bc = 1.e9
-T0_bc = 4.7058824e2
-T0_bc_gas = 5.e5
+p0_bc = 1.e6
+T0_bc = 453.
 gamma0_bc = 0.
-alpha_bc = 0.999999
-p_bc = 1.e5
-T_bc = 1.765e2
-T_bc_gas = 50.
+alpha0_bc = 0.5
+p_bc = 0.5e6
+T_bc = 453.
 gamma_bc = 0.
-alpha_bc = 1.e-6
+alpha_bc = 0.5
 
 ###### Initial Conditions #######
-pressure_init_left = 1.e9
-pressure_init_right = 1.e5
+pressure_init_left = 1e6
+pressure_init_right = 0.5e6
 vel_init_left = 0
 vel_init_right = 0
-temp_init_left = 4.7058824e2
-temp_init_right = 1.765e2
-temp_init_left_gas = 5.e5
-temp_init_right_gas = 50.
-alpha_init_left = 0.999999
-alpha_init_right = 1e-6
-membrane = 0.8
+temp_init_left = 453.
+temp_init_right = 453.
+alpha_init_left = 0.5
+alpha_init_right = 0.5
+membrane = 0.5
+length = 1.
 []
 
 #############################################################################
@@ -44,22 +46,84 @@ membrane = 0.8
 [UserObjects]
   [./eos_gas]
     type = EquationOfState
-  	gamma = 1.4
+  	gamma = 1.43
   	Pinf = 0
-    q = 0.
-  	Cv = 1.e2
+  	q = 2030e3
+  	Cv = 1040
   	q_prime = -23e3
   [../]
 
   [./eos_liq]
     type = EquationOfState
-    gamma = 4.4
-    Pinf = 6.e8
-    q = 0.
-    Cv = 1.e3
+    gamma = 2.35
+    Pinf = 1.e9
+    q = -1167e3
+    Cv = 1816
     q_prime = 0.
   [../]
 
+  [./JumpGradPressLiq]
+    type = JumpGradientInterface
+    variable = pressure_aux_l
+    jump_name = jump_grad_press_aux_l
+    execute_on = timestep_begin
+  [../]
+
+  [./JumpGradPressGas]
+    type = JumpGradientInterface
+    variable = pressure_aux_g
+    jump_name = jump_grad_press_aux_g
+    execute_on = timestep_begin
+  [../]
+
+  [./JumpGradDensLiq]
+    type = JumpGradientInterface
+    variable = density_aux_l
+    jump_name = jump_grad_dens_aux_l
+    execute_on = timestep_begin
+  [../]
+
+  [./JumpGradDensGas]
+    type = JumpGradientInterface
+    variable = density_aux_g
+    jump_name = jump_grad_dens_aux_g
+    execute_on = timestep_begin
+  [../]
+
+  [./SmoothJumpGradDensGas]
+    type = SmoothFunction
+    variable = jump_grad_dens_aux_g
+    var_name = smooth_jump_grad_dens_aux_g
+    execute_on = timestep_begin
+  [../]
+
+  [./SmoothJumpGradPressGas]
+    type = SmoothFunction
+    variable = jump_grad_press_aux_g
+    var_name = smooth_jump_grad_press_aux_g
+    execute_on = timestep_begin
+  [../]
+
+  [./SmoothJumpGradDensLiq]
+    type = SmoothFunction
+    variable = jump_grad_dens_aux_l
+    var_name = smooth_jump_grad_dens_aux_l
+    execute_on = timestep_begin
+  [../]
+
+  [./SmoothJumpGradPressLiq]
+    type = SmoothFunction
+    variable = jump_grad_press_aux_l
+    var_name = smooth_jump_grad_press_aux_l
+    execute_on = timestep_begin
+  [../]
+
+  [./JumpGradAlphaLiq]
+    type = JumpGradientInterface
+    variable = alpha_aux_l
+    jump_name = jump_grad_alpha_aux_l
+    execute_on = timestep_begin
+  [../]
 []
 
 ###### Mesh #######
@@ -67,12 +131,22 @@ membrane = 0.8
   type = GeneratedMesh
   dim = 1
   nx = 100
-  ny = 1
   xmin = 0
   xmax = 1
-  ymin = 0
-  ymax = 1
   block_id = '0'
+[]
+
+##############################################################################################
+#                                       FUNCTIONs                                            #
+##############################################################################################
+# Define functions that are used in the kernels and aux. kernels.                            #
+##############################################################################################
+
+[Functions]
+  [./area]
+    type = ParsedFunction
+    value = (1+0.5*cos(2*pi*x))
+  [../]
 []
 
 #############################################################################
@@ -84,7 +158,7 @@ membrane = 0.8
 ####### LIQUID PHASE ########
   [./alA_l]
     family = LAGRANGE
-    scaling = 1e+0
+    scaling = 1e-2
     [./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -94,7 +168,7 @@ membrane = 0.8
 
   [./alrhoA_l]
     family = LAGRANGE
-    scaling = 1e+0
+    scaling = 1e-2
 	[./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -104,7 +178,7 @@ membrane = 0.8
 
   [./alrhouA_l]
     family = LAGRANGE
-    scaling = 1e-3
+    scaling = 1e-4
 	[./InitialCondition]
         type = ConstantIC
         value = 0.
@@ -113,7 +187,7 @@ membrane = 0.8
 
   [./alrhoEA_l]
     family = LAGRANGE
-    scaling = 1e-3
+    scaling = 1e-7
 	[./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -124,7 +198,7 @@ membrane = 0.8
 ####### VAPOR PHASE ########
   [./alrhoA_g]
     family = LAGRANGE
-    scaling = 1e+0
+    scaling = 1e-2
     [./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -135,7 +209,7 @@ membrane = 0.8
 
   [./alrhouA_g]
     family = LAGRANGE
-    scaling = 1e-3
+    scaling = 1e-4
     [./InitialCondition]
         type = ConstantIC
         value = 0.
@@ -144,7 +218,7 @@ membrane = 0.8
 
   [./alrhoEA_g]
     family = LAGRANGE
-    scaling = 1e-3
+    scaling = 1e-7
     [./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -227,7 +301,7 @@ membrane = 0.8
     equation_name = VOID_FRACTION
     density = density_aux_l
     pressure = pressure_aux_l
-    velocity_x = velocity_x_aux_l
+    velocity_x =   velocity_x_aux_l
     internal_energy = internal_energy_aux_l
     area = area_aux
     vf_liquid = alpha_aux_l
@@ -381,25 +455,25 @@ membrane = 0.8
     family = LAGRANGE
   [../]
 
+  [./beta_max_aux]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./beta_aux]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
   [./PI_aux]
     family = MONOMIAL
     order = CONSTANT
   [../]
 
-#  [./velI_aux]
-#    family = MONOMIAL
-#    order = CONSTANT
-#  [../]
-
   [./PI_bar_aux]
     family = MONOMIAL
     order = CONSTANT
   [../]
-
-#  [./velI_bar_aux]
-#    family = MONOMIAL
-#    order = CONSTANT
-#  [../]
 
   [./rhoI_aux]
     family = MONOMIAL
@@ -450,16 +524,13 @@ membrane = 0.8
     family = MONOMIAL
     order = CONSTANT
   [../]
+
 ######### Liquid phase ##########
    [./velocity_x_aux_l]
       family = LAGRANGE
    [../]
 
    [./density_aux_l]
-      family = LAGRANGE
-   [../]
-
-   [./total_energy_aux_l]
       family = LAGRANGE
    [../]
 
@@ -488,16 +559,48 @@ membrane = 0.8
     family = MONOMIAL
     order = CONSTANT
   [../]
+
+  [./mu_aux_l]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./kappa_aux_l]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./jump_grad_press_aux_l]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./jump_grad_alpha_aux_l]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+ [./jump_grad_dens_aux_l]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./smooth_jump_grad_press_aux_l]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./smooth_jump_grad_dens_aux_l]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
 ######### Gas phase ##########
   [./velocity_x_aux_g]
     family = LAGRANGE
   [../]
 
   [./density_aux_g]
-    family = LAGRANGE
-  [../]
-
-  [./total_energy_aux_g]
     family = LAGRANGE
   [../]
 
@@ -526,6 +629,37 @@ membrane = 0.8
     family = MONOMIAL
     order = CONSTANT
   [../]
+
+  [./mu_aux_g]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./kappa_aux_g]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./jump_grad_press_aux_g]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./jump_grad_dens_aux_g]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./smooth_jump_grad_press_aux_g]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./smooth_jump_grad_dens_aux_g]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
 []
 
 ##############################################################################################
@@ -555,23 +689,11 @@ membrane = 0.8
     property = interfacial_pressure
   [../]
 
-#  [./VelIAK]
-#    type = MaterialRealAux
-#    variable = velI_aux
-#    property = interfacial_velocity
-#[../]
-
   [./PIbarAK]
     type = MaterialRealAux
     variable = PI_bar_aux
     property = average_interfacial_pressure
   [../]
-
-#  [./VelIbarAK]
-#    type = MaterialRealAux
-#    variable = velI_bar_aux
-#    property = average_interfacial_velocity
-#  [../]
 
   [./rhoIAK]
     type = MaterialRealAux
@@ -649,14 +771,6 @@ membrane = 0.8
     area = area_aux
   [../]
 
-  [./TotEnerAKLiq]
-    type = TotalEnergyAux
-    variable = total_energy_aux_l
-    alrhoEA = alrhoEA_l
-    vf_liquid = alpha_aux_l
-    area = area_aux
-  [../]
-
   [./IntEnerAKLiq]
     type = InternalEnergyAux
     variable = internal_energy_aux_l
@@ -703,6 +817,30 @@ membrane = 0.8
     variable = kappa_max_aux_l
     property = kappa_max_liq
   [../]
+
+  [./MuAKLiq]
+    type = MaterialRealAux
+    variable = mu_aux_l
+    property = mu_liq
+  [../]
+
+  [./KappaAKLiq]
+    type = MaterialRealAux
+    variable = kappa_aux_l
+    property = kappa_liq
+  [../]
+
+  [./BetaMaxAKLiq]
+    type = MaterialRealAux
+    variable = beta_max_aux
+    property = beta_max
+  [../]
+
+  [./BetaAKLiq]
+    type = MaterialRealAux
+    variable = beta_aux
+    property = beta
+  [../]
 ####### Gas phase ##########
   [./VelAKGas]
     type = VelocityAux
@@ -715,15 +853,6 @@ membrane = 0.8
     type = DensityAux
     variable = density_aux_g
     alrhoA = alrhoA_g
-    vf_liquid = alpha_aux_l
-    area = area_aux
-    isLiquid = false
-  [../]
-
-  [./TotEnerAKGas]
-    type = TotalEnergyAux
-    variable = total_energy_aux_g
-    alrhoEA = alrhoEA_g
     vf_liquid = alpha_aux_l
     area = area_aux
     isLiquid = false
@@ -760,12 +889,12 @@ membrane = 0.8
     eos = eos_gas
   [../]
 
-
   [./NormVelAKGas]
     type = NormVectorAux
     variable = norm_velocity_aux_g
     x_component = velocity_x_aux_g
   [../]
+
 
   [./MuMaxAKGas]
     type = MaterialRealAux
@@ -778,6 +907,19 @@ membrane = 0.8
     variable = kappa_max_aux_g
     property = kappa_max_gas
   [../]
+
+  [./MuAKGas]
+    type = MaterialRealAux
+    variable = mu_aux_g
+    property = mu_gas
+  [../]
+
+  [./KappaAKGas]
+    type = MaterialRealAux
+    variable = kappa_aux_g
+    property = kappa_gas
+  [../]
+
 []
 
 ##############################################################################################
@@ -793,9 +935,13 @@ membrane = 0.8
     velocity_x = velocity_x_aux_l
     pressure = pressure_aux_l
     density = density_aux_l
-    norm_velocity = norm_velocity_aux_l
+    jump_grad_press = smooth_jump_grad_press_aux_l
+    jump_grad_dens = smooth_jump_grad_dens_aux_l
+    jump_grad_alpha = jump_grad_alpha_aux_l
     vf_liquid = alpha_aux_l
+    norm_velocity = norm_velocity_aux_l
     eos = eos_liq
+    velocity_PPS_name = MaxVelocityLiq
   [../]
 
   [./ViscCoeffGas]
@@ -804,16 +950,19 @@ membrane = 0.8
     velocity_x = velocity_x_aux_g
     pressure = pressure_aux_g
     density = density_aux_g
-    norm_velocity = norm_velocity_aux_g
+    #jump_grad_press = smooth_jump_grad_press_aux_g
+    jump_grad_dens = smooth_jump_grad_dens_aux_g
     vf_liquid = alpha_aux_l
+    norm_velocity = norm_velocity_aux_g
     eos = eos_gas
+    velocity_PPS_name = MaxVelocityGas
     isLiquid = false
   [../]
 
   [./InterfacialRelaxationTransfer]
     type = InterfacialRelaxationTransfer
     block = '0'
-    Aint = 0.
+    Aint = 20000.
     velocity_x_liq = velocity_x_aux_l
     pressure_liq = pressure_aux_l
     density_liq = density_aux_l
@@ -827,6 +976,31 @@ membrane = 0.8
 []
 
 ##############################################################################################
+#                                     PPS                                                    #
+##############################################################################################
+# Define functions that are used in the kernels and aux. kernels.                            #
+##############################################################################################
+[Postprocessors]
+#  [./AverageAlphaLiq]
+#    type = ElementAverageValue
+#    variable = alpha_aux_l
+#    #execute_on = timestep_begin
+#  [../]
+
+  [./MaxVelocityLiq]
+    type = ElementAverageValue # NodalMaxValue
+    variable = norm_velocity_aux_l
+    #execute_on = timestep_begin
+  [../]
+
+  [./MaxVelocityGas]
+    type = ElementAverageValue # NodalMaxValue
+    variable = norm_velocity_aux_g
+    #execute_on = timestep_begin
+  [../]
+[]
+
+##############################################################################################
 #                               BOUNDARY CONDITIONS                                          #
 ##############################################################################################
 # Define the functions computing the inflow and outflow boundary conditions.                 #
@@ -836,7 +1010,7 @@ membrane = 0.8
   [./VoidFractionLeftLiq]
     type = DirichletBC
     variable = alA_l
-    value = 0.999999
+    value = 0.75
     boundary = 'left'
   [../]
 ######## Liquid phase ########
@@ -848,7 +1022,6 @@ membrane = 0.8
     alrhouA_n = alrhouA_l
     area = area_aux
     eos = eos_liq
-    #value = 1.5
     boundary = 'left'
   [../]
 
@@ -861,7 +1034,6 @@ membrane = 0.8
     temperature = temperature_aux_l
     vf_liquid = alpha_aux_l
     eos = eos_liq
-    #value = 0.5
     boundary = 'right'
   [../]
 
@@ -873,7 +1045,6 @@ membrane = 0.8
     alrhouA_n = alrhouA_l
     area = area_aux
     eos = eos_liq
-    #value = 0
     boundary = 'left'
   [../]
 
@@ -886,7 +1057,6 @@ membrane = 0.8
     temperature = temperature_aux_l
     vf_liquid = alpha_aux_l
     eos = eos_liq
-    #value = 0
     boundary = 'right'
   [../]
 
@@ -898,7 +1068,6 @@ membrane = 0.8
     alrhouA_n = alrhouA_l
     area = area_aux
     eos = eos_liq
-    #value = 3.75
     boundary = 'left'
   [../]
 
@@ -911,7 +1080,6 @@ membrane = 0.8
     temperature = temperature_aux_l
     vf_liquid = alpha_aux_l
     eos = eos_liq
-    #value = 1.25
     boundary = 'right'
   [../]
 
@@ -939,7 +1107,6 @@ membrane = 0.8
     vf_liquid = alpha_aux_l
     eos = eos_gas
     isLiquid = false
-    #value = 0.5
     boundary = 'right'
   [../]
 
@@ -966,7 +1133,6 @@ membrane = 0.8
     vf_liquid = alpha_aux_l
     eos = eos_gas
     isLiquid = false
-    #value = 0
     boundary = 'right'
   [../]
 
@@ -979,7 +1145,6 @@ membrane = 0.8
     area = area_aux
     eos = eos_gas
     isLiquid = false
-    #value = 0.375
     boundary = 'left'
   [../]
 
@@ -993,34 +1158,8 @@ membrane = 0.8
     vf_liquid = alpha_aux_l
     eos = eos_gas
     isLiquid = false
-    #value = 0.125
     boundary = 'right'
   [../]
-[]
-
-##############################################################################################
-#                                       FUNCTIONs                                            #
-##############################################################################################
-# Define functions that are used in the kernels and aux. kernels.                            #
-##############################################################################################
-
-[Functions]
-
-  [./area]
-     type = AreaFunction
-     #value = Ao * ( 1 - 0.5*sin((x-left)/l*pi) ) + Bo
-     left = 0.0
-     length = 1.
-     Ao = 0.0
-     Bo = 1.0
-  [../]
-
-#  [./SaturationTemperature]
-#    type = SaturationTemperature
-#    eos_liq = eos_liq
-#    eos_gas = eos_gas
-#[../]
-
 []
 
 ##############################################################################################
@@ -1034,20 +1173,17 @@ membrane = 0.8
   [./FDP_Newton]
     type = FDP
     full = true
-    petsc_options = '-snes_mf_operator -snes_ksp_ew'
-    petsc_options_iname = '-mat_fd_coloring_err'
-    petsc_options_value = '1.e-12'
-    #petsc_options = '-snes_mf_operator -ksp_converged_reason -ksp_monitor -snes_ksp_ew' 
-    #petsc_options_iname = '-pc_type'
-    #petsc_options_value = 'lu'
+    solve_type = 'PJFNK'
+    petsc_options_iname = '-mat_fd_coloring_err  -mat_fd_type  -mat_mffd_type'
+    petsc_options_value = '1.e-12       ds             ds'
+#line_search = 'none'
   [../]
 
   [./SMP]
-  type=SMP
-  full=true
-  petsc_options = '-snes_mf_operator'
-  petsc_options_iname = '-pc_type'
-  petsc_options_value = 'lu'
+    type=SMP
+    full=true
+    solve_type = 'PJFNK'
+    line_search = 'none'
   [../]
 []
 
@@ -1058,29 +1194,26 @@ membrane = 0.8
 ##############################################################################################
 
 [Executioner]
-  type = Transient   # Here we use the Transient Executioner
-  #scheme = 'explicit-euler'
-  string scheme = 'bdf2'
-  #petsc_options = '-snes'
-  #petsc_options_iname = '-pc_type'
-  #petsc_options_value = 'lu'
-  num_steps = 1
-  #end_time = 0.56
-  dt = 1e-6
+  type = Transient
+  scheme = 'bdf2'
+  #num_steps = 10
+  end_time = 0.20
+  #dt = 1.e-4
   dtmin = 1e-9
   l_tol = 1e-8
   nl_rel_tol = 1e-7
   nl_abs_tol = 1e-6
   l_max_its = 50
-  nl_max_its = 30
-#  [./TimeStepper]
-#    type = FunctionDT
-#    time_t =  '0     1e-4  1e-3  0.56'
-#    time_dt = '1e-5  1e-5  1e-3  1e-3'
-#  [../]
-#  [./Quadrature]
-#    type = TRAP
-#  [../]
+  nl_max_its = 15
+[./TimeStepper]
+    type = FunctionDT
+    time_t =  '0.      1.e-5   0.56'
+    time_dt = '1.e-5   1.e-3   1.e-3'
+  [../]
+  [./Quadrature]
+    type = TRAP
+    #order = FIFTH
+  [../]
 []
 
 ##############################################################################################
@@ -1090,8 +1223,20 @@ membrane = 0.8
 ##############################################################################################
 
 [Output]
+#  file_base = Nozzle1DIntOn_nel100_mu1_out
   output_initial = true
-  interval = 1
+  interval = 20
   exodus = true
+  postprocessor_screen = false
   perf_log = true
 []
+
+##############################################################################################
+#                                        DEBUG                                               #
+##############################################################################################
+# Debug                 #
+##############################################################################################
+
+#[Debug]
+#  show_var_residual_norms = true
+#[]

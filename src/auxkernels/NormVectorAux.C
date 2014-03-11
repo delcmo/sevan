@@ -31,8 +31,8 @@ NormVectorAux::NormVectorAux(const std::string & name, InputParameters parameter
     AuxKernel(name, parameters),
     // Coupled variables
     _x_comp(coupledValue("x_component")),
-    _y_comp(_dim>=2 ? coupledValue("y_component") : _zero),
-    _z_comp(_dim==3 ? coupledValue("z_component") : _zero)
+    _y_comp(_mesh.dimension()>=2 ? coupledValue("y_component") : _zero),
+    _z_comp(_mesh.dimension()==3 ? coupledValue("z_component") : _zero)
 {}
 
 Real

@@ -35,6 +35,7 @@ InputParameters validParams<EelEnergy>()
     params.addRequiredCoupledVar("vf_liquid","liquid void fraction");
     // Parameters:
     params.addParam<bool>("isLiquid", true, "boolean to determine if liquid phase or not");
+    params.addParam<RealVectorValue>("gravity", (0., 0., 0.), "gravity vector");
     // Equation of state:
     params.addRequiredParam<UserObjectName>("eos", "Equation of state");
     return params;
@@ -48,8 +49,8 @@ EelEnergy::EelEnergy(const std::string & name,
     // Coupled variables:
     _alrhoA(coupledValue("alrhoA")),
     _alrhouA_x(coupledValue("alrhouA_x")),
-    _alrhouA_y(_dim>=2 ? coupledValue("alrhouA_y") : _zero),
-    _alrhouA_z(_dim==3 ? coupledValue("alrhouA_z") : _zero),
+    _alrhouA_y(_mesh.dimension()>=2 ? coupledValue("alrhouA_y") : _zero),
+    _alrhouA_z(_mesh.dimension()==3 ? coupledValue("alrhouA_z") : _zero),
     // Velocity:
     _vel_x_2(isCoupled("vel_x_2") ? coupledValue("vel_x_2") : _zero),
     _vel_y_2(isCoupled("vel_y_2") ? coupledValue("vel_y_2") : _zero),
@@ -59,10 +60,13 @@ EelEnergy::EelEnergy(const std::string & name,
     _pressure_g(coupledValue("pressure_gas")),
     // Area and liquid void fraction:
     _area(coupledValue("area")),
+    _grad_area(coupledGradient("area")),
     _alpha_liq(coupledValue("vf_liquid")),
     _grad_alpha_liq(coupledGradient("vf_liquid")),
     // Equation of state:
     _eos(getUserObject<EquationOfState>("eos")),
+    // Gravity vector:
+    _gravity(getParam<RealVectorValue>("gravity")),
     // Material: interfacial variables.
     _Aint(getMaterialProperty<Real>("interfacial_area")),
     _PI(getMaterialProperty<Real>("interfacial_pressure")),
@@ -75,27 +79,31 @@ EelEnergy::EelEnergy(const std::string & name,
     _P_rel(getMaterialProperty<Real>("pressure_relaxation")),
     _vel_rel(getMaterialProperty<Real>("velocity_relaxation")),
     // Material: mass transfer.
-    _Omega(getMaterialProperty<Real>("mass_transfer")),
+    _Omega_gas(getMaterialProperty<Real>("mass_transfer")),
     // Matearial: heat transfer coefficient:
-    _ht(_isLiquid ? getMaterialProperty<Real>("liquid_heat_transfer") : getMaterialProperty<Real>("gas_heat_transfer"))
+    _interf_ht(_isLiquid ? getMaterialProperty<Real>("liquid_heat_transfer") : getMaterialProperty<Real>("gas_heat_transfer")),
+    // Matearial: wall heat transfer coefficient:
+    _wall_ht(_isLiquid ? getMaterialProperty<Real>("wall_heat_transfer_liq") : getMaterialProperty<Real>("wall_heat_transfer_gas")),
+    // Material: wall temperature.
+    _wall_temp(getMaterialProperty<Real>("wall_temperature"))
 {
 }
 
 Real EelEnergy::computeQpResidual()
 {
     // Sign: the sign of some terms is phase dependent (+ if liquid, - otherwise).
-    Real _sign = -(1-(double)_isLiquid) + (double)_isLiquid;
+    Real _sign = _isLiquid ? -1. : 1.;
     
     // Compute void fraction and its derivative of the phase (liquid or vapor):
-    Real _alpha = (1-(double)_isLiquid)*(1-_alpha_liq[_qp]) + (double)_isLiquid*_alpha_liq[_qp];
-    RealVectorValue _grad_alpha = -(1-(double)_isLiquid)*_grad_alpha_liq[_qp] + (double)_isLiquid*_grad_alpha_liq[_qp];
+    Real _alpha = _isLiquid ? _alpha_liq[_qp] : 1.-_alpha_liq[_qp];
+    RealVectorValue _grad_alpha =_isLiquid ? _grad_alpha_liq[_qp] : -_grad_alpha_liq[_qp];
     
     // Velocity vectors: 1->phase under consideration, 2->other phase.
-    RealVectorValue _vel_1(_alrhouA_x[_qp]/_alrhoA[_qp], _alrhouA_y[_qp]/_alrhoA[_qp], _alrhouA_z[_qp]/_alrhoA[_qp]);
-    RealVectorValue _vel_2(_vel_x_2[_qp], _vel_y_2[_qp], _vel_z_2[_qp]);
+    RealVectorValue _vel_k(_alrhouA_x[_qp]/_alrhoA[_qp], _alrhouA_y[_qp]/_alrhoA[_qp], _alrhouA_z[_qp]/_alrhoA[_qp]);
+    RealVectorValue _vel_j(_vel_x_2[_qp], _vel_y_2[_qp], _vel_z_2[_qp]);
     
     // Set the pressure:
-    Real _pressure = (1-(double)_isLiquid)*_pressure_g[_qp] + (double)_isLiquid*_pressure_l[_qp];
+    Real _pressure = _isLiquid ? _pressure_l[_qp] : _pressure_g[_qp];
     
     // Compute convective part of the energy equation:
     RealVectorValue _conv;
@@ -104,25 +112,35 @@ Real EelEnergy::computeQpResidual()
     _conv(2) = _alrhouA_z[_qp] * ( _u[_qp] + _alpha*_pressure*_area[_qp] ) / _alrhoA[_qp];
     
     // Compute void fraction source term:
-    Real _source_alpha = _area[_qp]*_PI[_qp]*_velI[_qp]*_grad_alpha_liq[_qp];
-    //std::cout<<"alpha="<<_source_alpha<<std::endl;
+    Real _source_alpha = _area[_qp]*_PI[_qp]*_velI[_qp]*_grad_alpha;
+    
     // Velocity relaxation source term:
-    Real _source_vel_rel = _area[_qp]*_velI_bar[_qp]*_vel_rel[_qp]*(_vel_2 - _vel_1);
+    Real _source_vel_rel = _area[_qp]*_velI_bar[_qp]*_vel_rel[_qp]*(_vel_j - _vel_k);
     
     // Pressure relaxation source term:
-    Real _source_press_rel = _sign*_area[_qp]*_PI_bar[_qp]*_P_rel[_qp]*(_pressure_g[_qp]-_pressure_l[_qp]);
-    //std::cout<<"press_rel="<<_source_press_rel<<std::endl;
-    // Mass transfer source term:
-    Real _mass = _sign*_area[_qp]*_Aint[_qp]*_EI[_qp]*_Omega[_qp];
-    //std::cout<<"mass="<<_mass<<std::endl;
+    Real _source_press_rel = _sign*_area[_qp]*_PI_bar[_qp]*_P_rel[_qp]*(_pressure_l[_qp]-_pressure_g[_qp]);
     
-    // Heat transfer source term:
-    Real _rho = _alrhoA[_qp]/(_alpha*_area[_qp]);
-    Real _temp_phase = _eos.temperature_from_p_rho(_pressure, _rho);
-    Real _source_ht = _area[_qp]*_Aint[_qp]*_ht[_qp]*(_tempI[_qp]-_temp_phase);
+    // Mass transfer source term:
+    Real _mass = _sign*_area[_qp]*_Aint[_qp]*_EI[_qp]*_Omega_gas[_qp];
+    
+    // Interfacial heat transfer source term:
+    Real rho = _alrhoA[_qp]/(_alpha*_area[_qp]);
+    Real temp_phase = _eos.temperature_from_p_rho(_pressure, rho);
+    Real source_interf_ht = _area[_qp]*_Aint[_qp]*_interf_ht[_qp]*(_tempI[_qp]-temp_phase);
+    
+    // Wall heat source term:
+    Real wall_area = std::sqrt(4*libMesh::pi*_area[_qp]+_grad_area[_qp].size_sq());
+    Real source_wall_ht = _wall_ht[_qp]*(_wall_temp[_qp]-temp_phase)*wall_area;
+    
+    // Gravity work:
+    Real gravity_work = _alrhoA[_qp]*_vel_k*_gravity;
+    
+//    std::cout<<"gravity="<<_gravity<<std::endl;
+//    std::cout<<"wall temp="<<_wall_temp[_qp]<<std::endl;
+//    std::cout<<"wall ht="<<_wall_ht[_qp]<<std::endl;
     
     // Total source term:
-    Real _source = _source_alpha + _source_vel_rel + _source_press_rel + _mass + _source_ht;
+    Real _source = _source_alpha + _source_vel_rel + _source_press_rel + _mass + source_interf_ht + source_wall_ht + gravity_work;
     
     /// Returns the residual
     return -_conv * _grad_test[_i][_qp] - _source * _test[_i][_qp];

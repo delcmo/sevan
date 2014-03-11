@@ -21,7 +21,7 @@
 #include "TemperatureAux.h"
 #include "VoidFractionAux.h"
 #include "NormVectorAux.h"
-#include "VariableTimesAreaAux.h"
+#include "VariableForDissipativeTerm.h"
 // Materials
 #include "ComputeViscCoeff.h"
 #include "InterfacialRelaxationTransfer.h"
@@ -29,6 +29,7 @@
 #include "EelStagnationPandTBC.h"
 #include "EelStaticPandTBC.h"
 #include "EelWallBC.h"
+#include "MassInflow.h"
 // ICs
 #include "ConservativeVariables1DXIC.h"
 #include "ConservativeVariables1DYIC.h"
@@ -94,7 +95,7 @@ SevanApp::registerObjects(Factory & factory)
     registerAux(TemperatureAux);
     registerAux(VoidFractionAux);
     registerAux(NormVectorAux);
-    registerAux(VariableTimesAreaAux);
+    registerAux(VariableForDissipativeTerm);
     // Materials
     registerMaterial(ComputeViscCoeff);
     registerMaterial(InterfacialRelaxationTransfer);
@@ -102,6 +103,7 @@ SevanApp::registerObjects(Factory & factory)
     registerBoundaryCondition(EelStagnationPandTBC);
     registerBoundaryCondition(EelStaticPandTBC);
     registerBoundaryCondition(EelWallBC);
+    registerBoundaryCondition(MassInflow);
     // ICs
     registerInitialCondition(ConservativeVariables1DXIC);
     registerInitialCondition(ConservativeVariables1DYIC);

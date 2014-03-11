@@ -47,7 +47,7 @@ private:
     VariableValue & _area;
     // Material property:
     MaterialProperty<Real> & _Aint;
-    MaterialProperty<Real> & _Omega;
+    MaterialProperty<Real> & _Omega_gas;
 };
 
 #endif // EelMass_H
