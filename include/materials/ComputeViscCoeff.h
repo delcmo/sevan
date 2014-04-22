@@ -51,6 +51,8 @@ private:
     // Boolean for phase
     bool _isLiquid;
     bool _useVelPps;
+    bool _usePressPps;
+    bool _useAlphaPps;
     
     // Liquid void fraction:
     VariableValue & _alpha_l;
@@ -94,15 +96,21 @@ private:
     // Interfactial variable:
     MaterialProperty<Real> & _PIbar;
     MaterialProperty<Real> & _Prel;
+    
     // Material property: interfacial velocity.
     MaterialProperty<RealVectorValue> & _velI;
-    //MaterialProperty<RealVectorValue> & _velI_old;
+
     // Multiplicative coefficient for viscosity:
     double _Ce;
+    double _Cjump;
+    double _Calpha;
+    
     // UserObject: equation of state
     const EquationOfState & _eos;
+    
     // Name of the posprocessors for pressure, velocity and void fraction:
     std::string _velocity_pps_name;
+    std::string _pressure_pps_name;
     std::string _alpha_pps_name;
 };
 

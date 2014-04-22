@@ -8,8 +8,8 @@
 order = FIRST
 viscosity_name = ENTROPY
 diffusion_name = ENTROPY
-Ce = 1
-
+Ce = 1.
+Cjump = 5.
 ###### Mass and heat transfer ######
 isMassOn = false
 isHeatOn = false
@@ -305,7 +305,6 @@ length = 1.
     internal_energy = internal_energy_aux_l
     area = area_aux
     vf_liquid = alpha_aux_l
-    var_for_void_fraction = var_for_diss_term_aux_l
     eos = eos_liq
   [../]
 
@@ -319,7 +318,6 @@ length = 1.
     internal_energy = internal_energy_aux_l
     area = area_aux
     vf_liquid = alpha_aux_l
-    var_for_void_fraction = var_for_diss_term_aux_l
     eos = eos_liq
   [../]
 
@@ -333,7 +331,6 @@ length = 1.
     internal_energy = internal_energy_aux_l
     area = area_aux
     vf_liquid = alpha_aux_l
-    var_for_void_fraction = var_for_diss_term_aux_l
     eos  =eos_liq
   [../]
 
@@ -347,7 +344,6 @@ length = 1.
     internal_energy = internal_energy_aux_l
     area = area_aux
     vf_liquid = alpha_aux_l
-    var_for_void_fraction = var_for_diss_term_aux_l
     eos = eos_liq
   [../]
 
@@ -779,17 +775,6 @@ length = 1.
     area = area_aux
   [../]
 
-  [./VarForDissTermAKLiq]
-    type = VariableForDissipativeTerm
-    variable = var_for_diss_term_aux_l
-    alphaA_liq = alA_l
-    alrhoA = alrhoA_l
-    alrhouA_x = alrhouA_l
-    alrhoEA = alrhoEA_l
-    area = area_aux
-    eos = eos_liq
-  [../]
-
   [./IntEnerAKLiq]
     type = InternalEnergyAux
     variable = internal_energy_aux_l
@@ -981,7 +966,7 @@ length = 1.
   [./InterfacialRelaxationTransfer]
     type = InterfacialRelaxationTransfer
     block = '0'
-    Aint = 0.
+    Aint = 5100.
     velocity_x_liq = velocity_x_aux_l
     pressure_liq = pressure_aux_l
     density_liq = density_aux_l
@@ -1216,22 +1201,22 @@ length = 1.
   type = Transient
   scheme = 'bdf2'
   #num_steps = 10
-  end_time = 0.56
+  end_time = 1.
   #dt = 1.e-4
   dtmin = 1e-9
   l_tol = 1e-8
-  nl_rel_tol = 1e-6
+  nl_rel_tol = 1e-8
   nl_abs_tol = 1e-6
   l_max_its = 50
   nl_max_its = 40
 [./TimeStepper]
     type = FunctionDT
-    time_t =  '0.      1.e-2    2.e-2  0.56'
-    time_dt = '1.e-4   1.e-4    1.e-3  1.e-3'
+    time_t =  '0.      2.e-3    2.e-2  0.56'
+    time_dt = '1.e-4   1.e-3    1.e-3  1.e-3'
   [../]
   [./Quadrature]
-    type = TRAP
-    #order = FIFTH
+    type = GAUSS
+    order = THIRD
   [../]
 []
 
@@ -1241,9 +1226,10 @@ length = 1.
 # Define the functions computing the inflow and outflow boundary conditions.                 #
 ##############################################################################################
 
-[Output]
+[Outputs]
   output_initial = true
-  interval = 30
+  interval = 1
+  console = true
   exodus = true
   postprocessor_screen = false
   perf_log = true

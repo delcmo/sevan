@@ -11,7 +11,6 @@ InputParameters validParams<EelStagnationPandTBC>()
     params.addCoupledVar("alrhoA", "alpha*rho*A");
     params.addCoupledVar("alrhouA_n", "component of the momentum normal to the surface: alpha*rho*u*A");
     // Coupled aux variables:
-    params.addCoupledVar("pressure_other_phase", "Pressure of the other phase: for infinite relaxation paramaters");
     params.addCoupledVar("area", "Coupled area variable");
     // Input parameters
     params.addRequiredParam<Real>("p0_bc", "Stagnation pressure at the boundary");
@@ -36,7 +35,6 @@ EelStagnationPandTBC::EelStagnationPandTBC(const std::string & name, InputParame
     _alrhoA(coupledValue("alrhoA")),
     _alrhouA_n(coupledValue("alrhouA_n")),
     // Coupled aux variables:
-    _press_other_phase(isCoupled("pressure_other_phase") ? coupledValue("pressure_other_phase") :  _zero),
     _area(coupledValue("area")),
     // Stagnation variables:
     _p0_bc(getParam<Real>("p0_bc")),
@@ -46,29 +44,20 @@ EelStagnationPandTBC::EelStagnationPandTBC(const std::string & name, InputParame
     // Equation of state:
     _eos(getUserObject<EquationOfState>("eos")),
     // Boolean:
-    _isLiquid(getParam<bool>("isLiquid")),
-    _is5EquModel(getParam<bool>("is5EquModel"))
+    _isLiquid(getParam<bool>("isLiquid"))
 {
-    // Compute some stagnation cpefficients:
-//    if (_isLiquid==true) {
+    // Pre-compute some stagnation cpefficients:
     _rho0_bc = _eos.rho_from_p_T(_p0_bc, _T0_bc);
     _H0_bc = _eos.e_from_p_rho(_p0_bc, _rho0_bc) + _p0_bc / _rho0_bc;
     _K = (_p0_bc + _eos.Pinf()) / std::pow(_rho0_bc, _eos.gamma());
     _H_bar = _eos.gamma() * (_p0_bc + _eos.Pinf()) / _rho0_bc / (_eos.gamma() - 1);
-//    }
-//    else {
-//        _rho0_bc = _eos.rho_from_p_T(_p0_bc, _T0_bc_gas);
-//        _H0_bc = _eos.e_from_p_rho(_p0_bc, _rho0_bc) + _p0_bc / _rho0_bc;
-//        _K = (_p0_bc + _eos.Pinf()) / std::pow(_rho0_bc, _eos.gamma());
-//        _H_bar = _eos.gamma() * (_p0_bc + _eos.Pinf()) / _rho0_bc / (_eos.gamma() - 1);
-//    }
 }
 
 Real
 EelStagnationPandTBC::computeQpResidual()
 {
     // Compute the void fraction:
-    Real _alpha = _isLiquid ? _alpha_bc_l : (1-_alpha_bc_l);
+    Real alpha_bc = _isLiquid ? _alpha_bc_l : (1-_alpha_bc_l);
     
     // Compute u_star and v_star:
     Real u_star = _alrhouA_n[_qp]/_alrhoA[_qp];
@@ -77,21 +66,24 @@ EelStagnationPandTBC::computeQpResidual()
     
     // Compute rho_star and static pressure:
     Real rho_star = std::pow((_H_bar - 0.5*_norm_vel_star2)*(_eos.gamma()-1)/(_eos.gamma())/_K, 1./(_eos.gamma()-1));
-    Real p_bc = _is5EquModel ? _press_other_phase[_qp] : _K * std::pow(rho_star, _eos.gamma()) - _eos.Pinf();
-//    std::cout<<_is5EquModel<<std::endl;
-//    std::cout<<_press_other_phase[_qp]<<std::endl;
-//    std::cout<<_K * std::pow(rho_star, _eos.gamma()) - _eos.Pinf()<<std::endl;
+    Real p_bc = _K * std::pow(rho_star, _eos.gamma()) - _eos.Pinf();
     
   switch (_eqn_type)
   {
       case CONTINUITY:
-        return _alpha*_area[_qp]*rho_star*( u_star*_normals[_qp](0) + v_star*_normals[_qp](1) ) * _test[_i][_qp];
+//          return _alrhouA_n[_qp] * _normals[_qp](0) * _test[_i][_qp];
+          return alpha_bc * rho_star * u_star * _area[_qp] * _normals[_qp](0) * _test[_i][_qp];
+//        return _alpha*_area[_qp]*rho_star*( u_star*_normals[_qp](0) + v_star*_normals[_qp](1) ) * _test[_i][_qp];
       case XMOMENTUM:
-        return _alpha*_area[_qp]*(u_star*rho_star*(u_star+v_star) + p_bc) * _normals[_qp](0) * _test[_i][_qp];
+//          return (_u[_qp] * _u[_qp] / _alrhoA[_qp] + alpha_bc * _area[_qp] * p_bc) * _normals[_qp](0) * _test[_i][_qp];
+          return alpha_bc * _area[_qp] * (rho_star * u_star * u_star + p_bc) * _normals[_qp](0) * _test[_i][_qp];
+//        return alpha_bc*_area[_qp]*(u_star*rho_star*(u_star+v_star) + p_bc) * _normals[_qp](0) * _test[_i][_qp];
       case YMOMENTUM:
-        return _alpha*_area[_qp]*(v_star*rho_star*(u_star+v_star) + p_bc) * _normals[_qp](1) * _test[_i][_qp];
+        return alpha_bc*_area[_qp]*(v_star*rho_star*(u_star+v_star) + p_bc) * _normals[_qp](1) * _test[_i][_qp];
       case ENERGY:
-        return _alpha*_area[_qp]*rho_star*_H0_bc*(u_star*_normals[_qp](0)+v_star*_normals[_qp](1)) * _test[_i][_qp];
+//          return _alrhouA_n[_qp] * _H0_bc * _normals[_qp](0) * _test[_i][_qp];
+          return alpha_bc * rho_star * u_star * _area[_qp] * _H0_bc * _normals[_qp](0) * _test[_i][_qp];
+//        return alpha_bc*_area[_qp]*rho_star*_H0_bc*(u_star*_normals[_qp](0)+v_star*_normals[_qp](1)) * _test[_i][_qp];
       case VOID_FRACTION:
         return 0.;
       default:

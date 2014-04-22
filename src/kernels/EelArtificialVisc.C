@@ -25,8 +25,6 @@ InputParameters validParams<EelArtificialVisc>()
     params.addParam<std::string>("diffusion_name", "PARABOLIC", "Name of the diffusion.");
     // Boolean
     params.addParam<bool>("isLiquid", true, "boolean to determine if liquid phase or not");
-    // Boolean for HEM
-    params.addParam<bool>("isHEM", false, "is HEM model?");
     // Coupled aux variables
     params.addRequiredCoupledVar("density", "density of the fluid");
     params.addRequiredCoupledVar("pressure", "pressure of the fluid");
@@ -36,7 +34,6 @@ InputParameters validParams<EelArtificialVisc>()
     params.addRequiredCoupledVar("internal_energy", "internal energy of the fluid");
     params.addRequiredCoupledVar("area", "area of the geometry");
     params.addRequiredCoupledVar("vf_liquid", "liquid void fraction");
-    params.addCoupledVar("var_for_void_fraction", "Variable used for the dissipative term of the void fraction and computed by the auxkernel VariableForDissipativeTerm.C");
     params.addRequiredParam<UserObjectName>("eos", "Equation of state");
   return params;
 }
@@ -81,9 +78,7 @@ EelArtificialVisc::EelArtificialVisc(const std::string & name,
 }
 
 Real EelArtificialVisc::computeQpResidual()
-{
-//    Real _h = _current_elem->hmin();
-    
+{    
     // Viscosity coefficient: mu
     Real mu = _isLiquid ? _mu_liq[_qp] : _mu_gas[_qp];
     Real kappa = _isLiquid ? _kappa_liq[_qp] : _kappa_gas[_qp];
@@ -131,7 +126,7 @@ Real EelArtificialVisc::computeQpResidual()
                 case VOID_FRACTION:
                     return _isOnbnd * _area[_qp] * l_k * _grad_test[_i][_qp];
                     break;
-                case CONTINUITY: // div(kappa grad(rho))
+                case CONTINUITY:
                     return _isOnbnd * _area[_qp] * f_k * _grad_test[_i][_qp];
                     break;
                 case XMOMENTUM:

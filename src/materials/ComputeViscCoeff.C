@@ -10,6 +10,8 @@ InputParameters validParams<ComputeViscCoeff>()
     // Boolean for phase:
     params.addParam<bool>("isLiquid", true, "the phase is liquid or not.");
     params.addParam<bool>("useVelPps", true, "use velocity pps");
+    params.addParam<bool>("usePressPps", false, "use pressure pps");
+    params.addParam<bool>("useAlphaPps", false, "use alpha pps");
     // Aux variables:
     params.addRequiredCoupledVar("velocity_x", "x component of the velocity");
     params.addCoupledVar("velocity_y", "y component of the velocity");
@@ -22,12 +24,15 @@ InputParameters validParams<ComputeViscCoeff>()
     params.addRequiredCoupledVar("norm_velocity", "norm of the velocity vector");
     params.addCoupledVar("vf_liquid", "liquid void fraction.");
     // Constant parameter:
-    params.addParam<double>("Ce", 1., "Coefficient for viscosity");
+    params.addParam<double>("Ce", 1., "Coefficient for residual");
+    params.addParam<double>("Cjump", 1., "Coefficient for jump");
+    params.addParam<double>("Calpha", 1., "Coefficient for alpha");
     // Userobject:
     params.addRequiredParam<UserObjectName>("eos", "Equation of state");
     // PPS names:
-    params.addParam<std::string>("velocity_PPS_name", "none", "name of the pps for velocity");
-    params.addParam<std::string>("alpha_PPS_name", "none", "name of the pps for alpha");
+    params.addParam<std::string>("velocity_PPS_name", "name of the pps for velocity");
+    params.addParam<std::string>("pressure_PPS_name", "name of the pps for pressure");
+    params.addParam<std::string>("alpha_PPS_name", "name of the pps for alpha");
     return params;
 }
 
@@ -42,6 +47,8 @@ ComputeViscCoeff::ComputeViscCoeff(const std::string & name, InputParameters par
     // Boolean for phase:
     _isLiquid(getParam<bool>("isLiquid")),
     _useVelPps(getParam<bool>("useVelPps")),
+    _usePressPps(getParam<bool>("usePressPps")),
+    _useAlphaPps(getParam<bool>("useAlphaPps")),
     // Liquid void fraction:
     _alpha_l(_isLiquid ? coupledValue("vf_liquid") : _zero),
     _alpha_l_old(_isLiquid ? coupledValueOld("vf_liquid") : _zero),
@@ -83,10 +90,13 @@ ComputeViscCoeff::ComputeViscCoeff(const std::string & name, InputParameters par
     _velI(getMaterialProperty<RealVectorValue>("interfacial_velocity")),
     // Get parameter Ce
     _Ce(getParam<double>("Ce")),
+    _Cjump(getParam<double>("Cjump")),
+    _Calpha(getParam<double>("Calpha")),
     // UserObject:
     _eos(getUserObject<EquationOfState>("eos")),
     // PPS name:
     _velocity_pps_name(getParam<std::string>("velocity_PPS_name")),
+    _pressure_pps_name(getParam<std::string>("pressure_PPS_name")),
     _alpha_pps_name(getParam<std::string>("alpha_PPS_name"))
 {
     _visc_type = _visc_name;
@@ -133,7 +143,8 @@ ComputeViscCoeff::computeQpProperties()
     }
     
     Real vel_var = _useVelPps ? std::max(getPostprocessorValueByName(_velocity_pps_name), _eps) : _norm_vel[_qp];
-    Real alpha_var = _useVelPps ? getPostprocessorValueByName(_alpha_pps_name) : _alpha_l[_qp];
+    Real press_var = _usePressPps ? std::max(getPostprocessorValueByName(_pressure_pps_name), _eps) : _rho[_qp]*_c*_c;
+    Real alpha_var = _useAlphaPps ? getPostprocessorValueByName(_alpha_pps_name) : _alpha_l[_qp];
     
     // Initialyze some variables used in the switch statement:
     Real _Dalpha = 0.; Real _jump = 0.;
@@ -192,14 +203,13 @@ ComputeViscCoeff::computeQpProperties()
             _residual = std::fabs(_D_P-_c*_c*_D_rho);
             
             // Compute the normalization factor:
-            _norm_mu = 0.5*_rho[_qp]*((1.-fct_of_mach)*_c*_c+fct_of_mach*std::min(vel_var*vel_var, _c*_c));
-//            _norm_kappa = ( (1.-fct_of_mach)*std::min(_pressure[_qp],_rho[_qp]*_c*_c)+fct_of_mach*_rho[_qp]*std::min(vel_var*vel_var, _c*_c) );
+            _norm_mu = 0.5*((1.-fct_of_mach)*press_var+fct_of_mach*std::min(vel_var*vel_var, _c*_c));
             _norm_kappa = _norm_mu;
             _norm_alpha = alpha_var;// _alpha_l[_qp];
             
             // Compute the jump of gradient of pressure:
-            _jump = 5.*_norm_vel[_qp]*std::max( _c*_c*_jump_grad_dens[_qp], _jump_grad_press[_qp]);
-            _jump_alpha = 5.*std::fabs(_velI[_qp].size()*_jump_grad_alpha[_qp]);
+            _jump = _Cjump*_norm_vel[_qp]*std::max( _c*_c*_jump_grad_dens[_qp], _jump_grad_press[_qp]);
+            _jump_alpha = _Calpha*std::fabs(_velI[_qp].size()*_jump_grad_alpha[_qp]);
             
             // Entropy viscosity coefficients:
             _kappa_e = _Ce*_h*_h*( _residual + _jump )/_norm_kappa;
@@ -213,8 +223,6 @@ ComputeViscCoeff::computeQpProperties()
             }
             else {
                 _beta[_qp] = std::min(_beta_max[_qp], _Ce*_h*_h*(std::fabs(_Dalpha)+_jump_alpha) / _norm_alpha);
-//                _beta[_qp] = std::min(_beta_max[_qp], _Ce*_h*_h*(_residual/_norm_kappa + _jump_alpha));
-//                _beta[_qp] = std::min(_beta_max[_qp], _kappa_e);
                 _kappa[_qp] = std::min( _kappa_max[_qp], _kappa_e );
                 _mu[_qp] = std::min( _kappa_max[_qp], _mu_e );
             }

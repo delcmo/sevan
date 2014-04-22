@@ -49,7 +49,6 @@ protected:
     VariableValue & _alrhouA_n;
 
     /// Coupled aux variables:
-    VariableValue & _press_other_phase;
     VariableValue & _area;
 
     /// Specified stagnation variables:
@@ -69,7 +68,6 @@ protected:
 
     // Boolean phase
     bool _isLiquid;
-    bool _is5EquModel;
 };
 
 #endif // EELSTAGNATIONPANDTBC_H
