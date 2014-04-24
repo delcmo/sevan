@@ -37,6 +37,9 @@
 //Functions
 #include "AreaFunction.h"
 #include "SaturationTemperature.h"
+// Postprocessors
+#include "ElementAverageMultipleValues.h"
+#include "ElementIntegralMultipleVariablesPostprocessor.h"
 // UserObjects
 #include "EquationOfState.h"
 #include "JumpGradientInterface.h"
@@ -111,6 +114,9 @@ SevanApp::registerObjects(Factory & factory)
     // Functions
     registerFunction(AreaFunction);
     registerFunction(SaturationTemperature);
+    // Postprocessors
+    registerPostprocessor(ElementAverageMultipleValues);
+    registerPostprocessor(ElementIntegralMultipleVariablesPostprocessor);
     //UserObjects
     registerUserObject(EquationOfState);
     registerUserObject(JumpGradientInterface);

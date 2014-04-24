@@ -27,6 +27,10 @@ private:
     bool _isWallHeatOn;
     bool _isWallFrictOn;
     
+    // Boolean for interfacial relaxation parameters:
+    bool _isPressRelOn;
+    bool _isVelRelOn;
+    
     // Coupled aux variables liquid phase
     VariableValue & _vel_x_l;
     VariableValue & _vel_y_l;

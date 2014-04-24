@@ -54,6 +54,9 @@ private:
     bool _usePressPps;
     bool _useAlphaPps;
     
+    // Bool for viscosity coefficient:
+    bool _useLiqViscForVF;
+    
     // Liquid void fraction:
     VariableValue & _alpha_l;
     VariableValue & _alpha_l_old;
@@ -77,6 +80,9 @@ private:
     VariableValue & _rho_old;
     VariableValue & _rho_older;
     VariableGradient & _grad_rho;
+    
+    // Internal energy
+    VariableValue & _rhoe;
     
     // Variables for jump:
     VariableValue & _jump_grad_press;
@@ -109,8 +115,9 @@ private:
     const EquationOfState & _eos;
     
     // Name of the posprocessors for pressure, velocity and void fraction:
-    std::string _velocity_pps_name;
-    std::string _pressure_pps_name;
+    std::string _rhov2_pps_name;
+    std::string _rhocv_pps_name;
+    std::string _rhoc2_pps_name;
     std::string _alpha_pps_name;
 };
 

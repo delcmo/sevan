@@ -10,6 +10,9 @@ InputParameters validParams<InterfacialRelaxationTransfer>()
     params.addParam<bool>("isHeatOn", false, "are the heat transfer terms are on?");
     params.addParam<bool>("isWallHeatOn", false, "are the wall heat transfer terms are on?");
     params.addParam<bool>("isWallFrictOn", false, "are the wall friction terms are on?");
+    // Boolean for interfacial relaxation parameters:
+    params.addParam<bool>("isPressRelOn", true, "is pressure relaxation on?");
+    params.addParam<bool>("isVelRelOn", true, "is velocity relaxation on?");
     // Aux Relaxation for liquid phase:
     params.addRequiredCoupledVar("velocity_x_liq", "x component of the liquid velocity");
     params.addCoupledVar("velocity_y_liq", "y component of the liquid velocity");
@@ -43,6 +46,9 @@ InterfacialRelaxationTransfer::InterfacialRelaxationTransfer(const std::string &
     _isHeatOn(getParam<bool>("isHeatOn")),
     _isWallHeatOn(getParam<bool>("isWallHeatOn")),
     _isWallFrictOn(getParam<bool>("isWallFrictOn")),
+    // Boolean for interfacial relaxation parameters:
+    _isPressRelOn(getParam<bool>("isPressRelOn")),
+    _isVelRelOn(getParam<bool>("isVelRelOn")),
     // Aux variable for liquid phase:
     _vel_x_l(coupledValue("velocity_x_liq")),
     _vel_y_l(_mesh.dimension()>=2 ? coupledValue("velocity_y_liq") : _zero),
@@ -128,12 +134,19 @@ InterfacialRelaxationTransfer::computeQpProperties()
         // Compute unit vector based on gradient of liquid void fraction:
         Real _eps = std::sqrt(std::numeric_limits<Real>::min());
         RealVectorValue _n(_grad_alpha_l[_qp](0), _grad_alpha_l[_qp](1), _grad_alpha_l[_qp](2));
-        //std::cout<<_n.size()<<std::endl;
-        if (_n.size() <= 1e-8) {
-            _n(0) = 0.; _n(1) = 0.; _n(2) = 0.;
+        if ( _mesh.dimension() == 1 )
+        {
+            _n(0) = _grad_alpha_l[_qp](0) > 0 ? 1. : -1.;
+            _n(1) = 0.; _n(2) = 0.;
         }
-        else {
-            _n = _n / (_n.size() + _eps); }
+        else
+        {
+            if (_n.size() <= 1e-8) {
+                _n(0) = 0.; _n(1) = 0.; _n(2) = 0.;
+            }
+            else {
+                _n = _n / (_n.size() + _eps); }
+        }
 
         // Compute the average interfacial Relaxation parameters:
         _PI_bar[_qp] = ( _Z_g*_pressure_l[_qp] + _Z_l*_pressure_g[_qp] ) / _sum_Z;
@@ -145,8 +158,8 @@ InterfacialRelaxationTransfer::computeQpProperties()
 
         // Compute the relaxation parameters:
         _Aint[_qp] = _Aint_max*(6.75*(1-_alpha_l[_qp])*(1-_alpha_l[_qp])*_alpha_l[_qp]);
-        _P_rel[_qp] = _Aint[_qp] / _sum_Z; /*(mu)*/
-        _vel_rel[_qp] = 0.5*_P_rel[_qp]*_Z_g*_Z_l; /*(lambda)*/
+        _P_rel[_qp] = _isPressRelOn ? _Aint[_qp]/_sum_Z : 0.; /*(mu)*/
+        _vel_rel[_qp] = _isVelRelOn ? 0.5*_Aint[_qp]*_Z_g*_Z_l/_sum_Z : 0.; /*(lambda)*/
     }
 
     /***************************************************/

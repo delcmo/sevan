@@ -87,8 +87,7 @@ SmoothFunction::execute()
         
         // Determine the maximum value for smoothing:
         for (unsigned int qp = 0; qp < _q_point.size(); ++qp) {
-            //Real _value_temp = std::max(_u[qp], _u_neighbor[qp]) / (2);
-            Real _value_temp = 0.5*(_u[qp]+_u_neighbor[qp]) / (2);
+            Real _value_temp = 0.5*(_u[qp]+_u_neighbor[qp]);
             _value = std::max(_value_temp, _value);
         }
         
@@ -97,8 +96,21 @@ SmoothFunction::execute()
         dof_nb_neighbor = _neighbor_elem->dof_number(_aux.number(), _fe_problem.getVariable(_tid, _var_name).number(), 0);
         
         // Set the value:
-        sln.add(dof_nb, _value*_weight_elem);
-        sln.add(dof_nb_neighbor, _value*_weight_nghb_elem);
+        if (_current_elem->on_boundary()) // the side is on the boundary
+        {
+            sln.add(dof_nb, 2*_value*_weight_elem);
+            sln.add(dof_nb_neighbor, 2*_value*_weight_nghb_elem);
+        }
+        else if (_neighbor_elem->on_boundary()) // the side is on the boundary
+        {
+            sln.add(dof_nb, 2*_value*_weight_elem);
+            sln.add(dof_nb_neighbor, 2*_value*_weight_nghb_elem);
+        }
+        else
+        {
+            sln.add(dof_nb, _value*_weight_elem);
+            sln.add(dof_nb_neighbor, _value*_weight_nghb_elem);
+        }
     }
 }
 

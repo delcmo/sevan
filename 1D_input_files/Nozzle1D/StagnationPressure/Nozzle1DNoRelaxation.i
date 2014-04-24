@@ -9,14 +9,10 @@ order = FIRST
 viscosity_name = ENTROPY
 diffusion_name = ENTROPY
 Ce = 1.
-Cjump = 5.
-Calpha = 5.
+Cjump = 2.
 ###### Mass and heat transfer ######
 isMassOn = false
 isHeatOn = false
-#isVelRelOn = false
-#isPressRelOn = false
-#useLiqViscForVF = true
 
 ###### Boundary Conditions ######
 p0_bc = 1.e6
@@ -942,14 +938,11 @@ length = 1.
     internal_energy = internal_energy_aux_l
     jump_grad_press = smooth_jump_grad_press_aux_l
     jump_grad_dens = smooth_jump_grad_dens_aux_l
-    jump_grad_alpha = jump_grad_alpha_aux_l
+    #jump_grad_alpha = jump_grad_alpha_aux_l
     vf_liquid = alpha_aux_l
     norm_velocity = norm_velocity_aux_l
     eos = eos_liq
-    rhov2_PPS_name = AverageRhov2Liq
-    rhocv_PPS_name = AverageRhocvelLiq
-    rhoc2_PPS_name = AverageRhoc2Liq
-    alpha_PPS_name = AverageAlphaLiq
+    velocity_PPS_name = MaxVelocityLiq
   [../]
 
   [./ViscCoeffGas]
@@ -964,17 +957,14 @@ length = 1.
     vf_liquid = alpha_aux_l
     norm_velocity = norm_velocity_aux_g
     eos = eos_gas
-    rhov2_PPS_name = AverageRhov2Gas
-    rhocv_PPS_name = AverageRhocvelGas
-    rhoc2_PPS_name = AverageRhoc2Gas
-    alpha_PPS_name = AverageAlphaLiq
+    velocity_PPS_name = MaxVelocityGas
     isLiquid = false
   [../]
 
   [./InterfacialRelaxationTransfer]
     type = InterfacialRelaxationTransfer
     block = '0'
-    Aint = 3000.
+    Aint = 0.
     velocity_x_liq = velocity_x_aux_l
     pressure_liq = pressure_aux_l
     density_liq = density_aux_l
@@ -999,97 +989,16 @@ length = 1.
 #    #execute_on = timestep_begin
 #  [../]
 
-#  [./MaxVelocityLiq]
-#    type = ElementAverageValue # NodalMaxValue
-#    variable = norm_velocity_aux_l
-#    #execute_on = timestep_begin
-#  [../]
-
-#  [./MaxVelocityGas]
-#    type = ElementAverageValue # NodalMaxValue
-#    variable = norm_velocity_aux_g
-#    #execute_on = timestep_begin
-#  [../]
-
-  [./AverageAlphaLiq]
+  [./MaxVelocityLiq]
     type = ElementAverageValue # NodalMaxValue
-    variable = alpha_aux_l
+    variable = norm_velocity_aux_l
     #execute_on = timestep_begin
   [../]
 
-  [./AverageRhov2Liq]
-    type = ElementAverageMultipleValues
+  [./MaxVelocityGas]
+    type = ElementAverageValue # NodalMaxValue
     variable = norm_velocity_aux_g
-    output_type = RHOVEL2
-    alA = alA_l
-    alrhoA = alrhoA_l
-    alrhouA_x = alrhouA_l
-    alrhoEA = alrhoEA_l
-    eos = eos_liq
-    area = area_aux
-  [../]
-
-  [./AverageRhov2Gas]
-    type = ElementAverageMultipleValues
-    variable = norm_velocity_aux_g
-    output_type = RHOVEL2
-    alA = alA_l
-    alrhoA = alrhoA_g
-    alrhouA_x = alrhouA_g
-    alrhoEA = alrhoEA_g
-    eos = eos_gas
-    area = area_aux
-    isLiquid = false
-  [../]
-
-  [./AverageRhocvelLiq]
-    type = ElementAverageMultipleValues
-    variable = norm_velocity_aux_g
-    output_type = RHOCVEL
-    alA = alA_l
-    alrhoA = alrhoA_l
-    alrhouA_x = alrhouA_l
-    alrhoEA = alrhoEA_l
-    eos = eos_liq
-    area = area_aux
-  [../]
-
-  [./AverageRhocvelGas]
-    type = ElementAverageMultipleValues
-    variable = norm_velocity_aux_g
-    output_type = RHOCVEL
-    alA = alA_l
-    alrhoA = alrhoA_g
-    alrhouA_x = alrhouA_g
-    alrhoEA = alrhoEA_g
-    eos = eos_gas
-    area = area_aux
-    isLiquid = false
-  [../]
-
-  [./AverageRhoc2Liq]
-    type = ElementAverageMultipleValues
-    variable = norm_velocity_aux_g
-    output_type = RHOC2
-    alA = alA_l
-    alrhoA = alrhoA_l
-    alrhouA_x = alrhouA_l
-    alrhoEA = alrhoEA_l
-    eos = eos_liq
-    area = area_aux
-  [../]
-
-  [./AverageRhoc2Gas]
-    type = ElementAverageMultipleValues
-    variable = norm_velocity_aux_g
-    output_type = RHOC2
-    alA = alA_l
-    alrhoA = alrhoA_g
-    alrhouA_x = alrhouA_g
-    alrhoEA = alrhoEA_g
-    eos = eos_gas
-    area = area_aux
-    isLiquid = false
+    #execute_on = timestep_begin
   [../]
 []
 
@@ -1297,18 +1206,14 @@ length = 1.
   nl_rel_tol = 1e-8
   nl_abs_tol = 1e-6
   l_max_its = 50
-  nl_max_its = 15
+  nl_max_its = 40
 [./TimeStepper]
     type = FunctionDT
-#    time_t =  '0.      2.e-4    1.e-2   2.e-2   0.56'
-#    time_dt = '1.e-5   1.e-4    1.e-4   1.e-3   1.e-3'
-#    time_t =  '0.      1.e-2    2.e-2   4.e-2   0.56'
-#    time_dt = '1.e-4   1.e-4    1.e-3   1.e-2   1.e-2'
-    time_t =  '0.      1.e-2    2.e-2   1.e-1   0.56'
-    time_dt = '1.e-3   1.e-3    1.e-3   1.e-3   1.e-3'
+    time_t =  '0.      2.e-2    1.e-1  0.56'
+    time_dt = '1.e-4   1.e-4    1.e-3  1.e-3'
   [../]
   [./Quadrature]
-    type = GAUSS
+    type = TRAP
     order = THIRD
   [../]
 []
