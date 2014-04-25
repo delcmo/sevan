@@ -36,6 +36,7 @@ InputParameters validParams<ComputeViscCoeff>()
     params.addParam<std::string>("rhov2_PPS_name", "name of the pps computing rho*vel*vel");
     params.addParam<std::string>("rhocv_PPS_name", "name of the pps computing rho*c*vel");
     params.addParam<std::string>("rhoc2_PPS_name", "name of the pps computing rho*c*c");
+    params.addParam<std::string>("press_PPS_name", "name of the pps computing the pressure");
     params.addParam<std::string>("alpha_PPS_name", "name of the pps for alpha");
     return params;
 }
@@ -106,6 +107,7 @@ ComputeViscCoeff::ComputeViscCoeff(const std::string & name, InputParameters par
     _rhov2_pps_name(getParam<std::string>("rhov2_PPS_name")),
     _rhocv_pps_name(getParam<std::string>("rhocv_PPS_name")),
     _rhoc2_pps_name(getParam<std::string>("rhoc2_PPS_name")),
+    _press_pps_name(getParam<std::string>("press_PPS_name")),
     _alpha_pps_name(getParam<std::string>("alpha_PPS_name"))
 {
     _visc_type = _visc_name;
@@ -126,16 +128,16 @@ void
 ComputeViscCoeff::computeQpProperties()
 {
     // Determine h (length used in definition of first and second order derivatives):
-    Real _h = _current_elem->hmin();
-    Real _eps = std::sqrt(std::numeric_limits<Real>::min());
+    Real h = _current_elem->hmin();
+    Real eps = std::sqrt(std::numeric_limits<Real>::min());
     
     // Compute the first order viscosity and the mach number:
-    Real _c = std::sqrt(_eos.c2_from_p_rho(_rho[_qp], _pressure[_qp]));
+    Real c = std::sqrt(_eos.c2_from_p_rho(_rho[_qp], _pressure[_qp]));
     
-    _mu_max[_qp] = 0.5*_h*_norm_vel[_qp];
-    _kappa_max[_qp] = 0.5*_h*(_norm_vel[_qp] + _c);
-    _beta_max[_qp] = 0.5*_h*_velI[_qp].size();
-    Real _Mach = _norm_vel[_qp]/_c;
+    _mu_max[_qp] = 0.5*h*_norm_vel[_qp];
+    _kappa_max[_qp] = 0.5*h*(_norm_vel[_qp] + c);
+    _beta_max[_qp] = 0.5*h*_velI[_qp].size();
+    Real _Mach = _norm_vel[_qp]/c;
     Real fct_of_mach = _Mach;
     switch (_fct_of_mach_type) {
         case MACH:
@@ -151,19 +153,20 @@ ComputeViscCoeff::computeQpProperties()
             mooseError("The function with name: \"" << _fct_of_mach_name << "\" is not supported in the \"ComputeViscCoeff\" type of material.");
     }
     
-    Real rhov2_pps = std::max(getPostprocessorValueByName(_rhov2_pps_name), _eps);// : _norm_vel[_qp];
-    Real rhocv_pps = std::max(getPostprocessorValueByName(_rhocv_pps_name), _eps);// : _norm_vel[_qp];
-    Real rhoc2_pps = std::max(getPostprocessorValueByName(_rhoc2_pps_name), _eps);// : _rho[_qp]*_c*_c;
+    Real rhov2_pps = std::max(getPostprocessorValueByName(_rhov2_pps_name), eps);// : _norm_vel[_qp];
+    Real rhocv_pps = std::max(getPostprocessorValueByName(_rhocv_pps_name), eps);// : _norm_vel[_qp];
+    Real rhoc2_pps = std::max(getPostprocessorValueByName(_rhoc2_pps_name), eps);// : _rho[_qp]*_c*_c;
+    Real press_pps = std::max(getPostprocessorValueByName(_press_pps_name), eps);
     Real alpha_var = _useAlphaPps ? getPostprocessorValueByName(_alpha_pps_name) : _alpha_l[_qp];
     
     // Initialyze some variables used in the switch statement:
-    Real _Dalpha = 0.; Real _jump = 0.;
-    Real _D_P = 0.; Real _jump_alpha = 0.;
-    Real _D_stt = 0.; Real _D_rho = 0.;
-    Real _kappa_e = 0.; Real _mu_e = 0.;
-    Real _residual = 0.; Real _norm_kappa = 0.; Real _norm_mu = 0.; Real _norm_alpha = 0.;
-    RealVectorValue _vel(_vel_x[_qp], _vel_y[_qp], _vel_z[_qp]);
-    Real _weight0 = 0.; Real _weight1 = 0.; Real _weight2 = 0.;
+    Real Dalpha = 0.; Real jump = 0.;
+    Real D_P = 0.; Real jump_alpha = 0.;
+    Real D_stt = 0.; Real D_rho = 0.;
+    Real kappa_e = 0.; Real mu_e = 0.;
+    Real residual = 0.; Real norm_kappa = 0.; Real norm_mu = 0.; Real norm_alpha = 0.;
+    RealVectorValue vel(_vel_x[_qp], _vel_y[_qp], _vel_z[_qp]);
+    Real weight0 = 0.; Real weight1 = 0.; Real weight2 = 0.;
     
     // Switch statement over viscosity type:
     switch (_visc_type) {
@@ -174,7 +177,7 @@ ComputeViscCoeff::computeQpProperties()
                 _beta[_qp] = _beta_max[_qp];
             }
             else {
-                _mu[_qp] = _Ce*_h*_h*std::fabs(_grad_vel_x[_qp](0));
+                _mu[_qp] = _Ce*h*h*std::fabs(_grad_vel_x[_qp](0));
                 _kappa[_qp] = _mu[_qp];
                 _beta[_qp] = _mu[_qp];
             }
@@ -195,36 +198,35 @@ ComputeViscCoeff::computeQpProperties()
             break;
         case ENTROPY:
             // Compute the weigth for BDF2
-            _weight0 = (2.*_dt+_dt_old)/(_dt*(_dt+_dt_old));
-            _weight1 = -(_dt+_dt_old)/(_dt*_dt_old);
-            _weight2 = _dt/(_dt_old*(_dt+_dt_old));
+            weight0 = (2.*_dt+_dt_old)/(_dt*(_dt+_dt_old));
+            weight1 = -(_dt+_dt_old)/(_dt*_dt_old);
+            weight2 = _dt/(_dt_old*(_dt+_dt_old));
             
             // Compute entropy residual for void fraction equations:
-            _D_stt = _velI[_qp]*_grad_alpha_l[_qp];
-            _Dalpha = (_weight0*_alpha_l[_qp]+_weight1*_alpha_l_old[_qp]+_weight2*_alpha_l_older[_qp]) + _D_stt;
+            D_stt = _velI[_qp]*_grad_alpha_l[_qp];
+            Dalpha = (weight0*_alpha_l[_qp]+weight1*_alpha_l_old[_qp]+weight2*_alpha_l_older[_qp]) + D_stt;
             
             // Compute the characteristic equation u:
-            _D_stt = _vel*_grad_press[_qp];
-            _D_P = (_weight0*_pressure[_qp]+_weight1*_pressure_old[_qp]+_weight2*_pressure_older[_qp]) + _D_stt;
-            _D_stt = _vel*_grad_rho[_qp];
-            _D_rho = (_weight0*_rho[_qp]+_weight1*_rho_old[_qp]+_weight2*_rho_older[_qp]) + _D_stt;
-            _residual = std::fabs(_D_P-_c*_c*_D_rho);
+            D_stt = vel*_grad_press[_qp];
+            D_P = (weight0*_pressure[_qp]+weight1*_pressure_old[_qp]+weight2*_pressure_older[_qp]) + D_stt;
+            D_stt = vel*_grad_rho[_qp];
+            D_rho = (weight0*_rho[_qp]+weight1*_rho_old[_qp]+weight2*_rho_older[_qp]) + D_stt;
+            residual = std::fabs(D_P-c*c*D_rho);
             
             // Compute the normalization factor:
-//            _norm_mu = 0.5*((1.-fct_of_mach)*std::min(press_var,_rhoe[_qp])+fct_of_mach*std::min(vel_var*vel_var, _c*_c));
-//            _norm_kappa = 0.5*((1.-fct_of_mach)*std::min(press_var,_rhoe[_qp])+fct_of_mach*_rho[_qp]*vel_var*vel_var);
-//            _norm_mu = 0.5*((1.-fct_of_mach)*press_var+fct_of_mach*std::min(vel_var*vel_var, _c*_c));
-            _norm_mu = 0.5*((1.-fct_of_mach)*rhocv_pps +fct_of_mach*std::min(rhov2_pps,rhoc2_pps));
-            _norm_kappa = 0.5*((1.-fct_of_mach)*rhoc2_pps +fct_of_mach*std::min(rhov2_pps,rhoc2_pps));
-            _norm_alpha = alpha_var;// _alpha_l[_qp];
+//            _norm_mu = 0.5*((1.-fct_of_mach)*rhocv_pps +fct_of_mach*std::min(rhov2_pps,rhoc2_pps));
+//            _norm_kappa = 0.5*((1.-fct_of_mach)*rhoc2_pps +fct_of_mach*std::min(rhov2_pps,rhoc2_pps));
+            norm_mu = 0.5*rhocv_pps;
+            norm_kappa = norm_mu;// 0.5*std::min(rhoc2_pps, press_pps);
+            norm_alpha = alpha_var;// _alpha_l[_qp];
             
             // Compute the jump of gradient of pressure:
-            _jump = _Cjump*_norm_vel[_qp]*std::max( _c*_c*_jump_grad_dens[_qp], _jump_grad_press[_qp]);
-            _jump_alpha = _Calpha*std::fabs(_velI[_qp].size()*_jump_grad_alpha[_qp]);
+            jump = _Cjump*_norm_vel[_qp]*std::max( c*c*_jump_grad_dens[_qp], _jump_grad_press[_qp]);
+            jump_alpha = _Calpha*std::fabs(_velI[_qp].size()*_jump_grad_alpha[_qp]);
             
             // Entropy viscosity coefficients:
-            _kappa_e = _Ce*_h*_h*( _residual + _jump )/_norm_kappa;
-            _mu_e = _Ce*_h*_h*( _residual + _jump )/_norm_mu;
+            kappa_e = _Ce*h*h*( residual + jump )/norm_kappa;
+            mu_e = _Ce*h*h*( residual + jump )/norm_mu;
             
             // Compute the viscosity coefficients:
             if (_t_step == -1) {
@@ -236,10 +238,10 @@ ComputeViscCoeff::computeQpProperties()
 //                if (_useLiqViscForVF)
 //                    _beta[_qp] = _mu[_qp];
 //                else
-                _beta[_qp] = std::min(_beta_max[_qp], _Ce*_h*_h*(std::fabs(_Dalpha)+_jump_alpha) / _norm_alpha);
+                _beta[_qp] = std::min(_beta_max[_qp], _Ce*h*h*(std::fabs(Dalpha)+jump_alpha) / norm_alpha);
 //                _kappa[_qp] = std::min( _kappa_max[_qp], std::max(_kappa_e, _beta[_qp]) );
-                _mu[_qp] = std::min( _kappa_max[_qp], _mu_e );
-                _kappa[_qp] = std::min( _kappa_max[_qp], _kappa_e );
+                _mu[_qp] = std::min( _kappa_max[_qp], mu_e );
+                _kappa[_qp] = std::min( _kappa_max[_qp], kappa_e );
 //                _mu[_qp] = std::min( _kappa_max[_qp], _mu_e );
 //                _kappa[_qp] = _isLiquid ? _beta[_qp] : std::min( _kappa_max[_qp], _kappa_e );
 //                _mu[_qp] = _isLiquid ? _beta[_qp] : std::min( _kappa_max[_qp], _mu_e );

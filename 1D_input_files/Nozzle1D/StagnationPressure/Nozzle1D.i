@@ -949,6 +949,7 @@ length = 1.
     rhov2_PPS_name = AverageRhov2Liq
     rhocv_PPS_name = AverageRhocvelLiq
     rhoc2_PPS_name = AverageRhoc2Liq
+    press_PPS_name = AveragePressureLiq
     alpha_PPS_name = AverageAlphaLiq
   [../]
 
@@ -967,6 +968,7 @@ length = 1.
     rhov2_PPS_name = AverageRhov2Gas
     rhocv_PPS_name = AverageRhocvelGas
     rhoc2_PPS_name = AverageRhoc2Gas
+    press_PPS_name = AveragePressureGas
     alpha_PPS_name = AverageAlphaLiq
     isLiquid = false
   [../]
@@ -974,7 +976,7 @@ length = 1.
   [./InterfacialRelaxationTransfer]
     type = InterfacialRelaxationTransfer
     block = '0'
-    Aint = 3000.
+    Aint = 0.
     velocity_x_liq = velocity_x_aux_l
     pressure_liq = pressure_aux_l
     density_liq = density_aux_l
@@ -1005,11 +1007,17 @@ length = 1.
 #    #execute_on = timestep_begin
 #  [../]
 
-#  [./MaxVelocityGas]
-#    type = ElementAverageValue # NodalMaxValue
-#    variable = norm_velocity_aux_g
-#    #execute_on = timestep_begin
-#  [../]
+  [./AveragePressureLiq]
+    type = ElementAverageValue
+    variable = pressure_aux_l
+    #execute_on = timestep_begin
+  [../]
+
+  [./AveragePressureGas]
+    type = ElementAverageValue
+    variable = pressure_aux_g
+    #execute_on = timestep_begin
+  [../]
 
   [./AverageAlphaLiq]
     type = ElementAverageValue # NodalMaxValue
@@ -1302,13 +1310,13 @@ length = 1.
     type = FunctionDT
 #    time_t =  '0.      2.e-4    1.e-2   2.e-2   0.56'
 #    time_dt = '1.e-5   1.e-4    1.e-4   1.e-3   1.e-3'
-#    time_t =  '0.      1.e-2    2.e-2   4.e-2   0.56'
-#    time_dt = '1.e-4   1.e-4    1.e-3   1.e-2   1.e-2'
-    time_t =  '0.      1.e-2    2.e-2   1.e-1   0.56'
-    time_dt = '1.e-3   1.e-3    1.e-3   1.e-3   1.e-3'
+    time_t =  '0.      1.e-2    2.e-2   4.e-2   0.56'
+    time_dt = '1.e-4   1.e-4    1.e-3   1.e-2   1.e-2'
+#    time_t =  '0.      1.e-2    2.e-2   1.e-1   0.56'
+#    time_dt = '1.e-3   1.e-3    1.e-3   1.e-3   1.e-3'
   [../]
   [./Quadrature]
-    type = GAUSS
+    type = TRAP
     order = THIRD
   [../]
 []

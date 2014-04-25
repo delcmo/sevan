@@ -118,6 +118,7 @@ private:
     std::string _rhov2_pps_name;
     std::string _rhocv_pps_name;
     std::string _rhoc2_pps_name;
+    std::string _press_pps_name;
     std::string _alpha_pps_name;
 };
 
