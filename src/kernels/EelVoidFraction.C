@@ -53,10 +53,10 @@ Real EelVoidFraction::computeQpResidual()
     Real _rel = _area[_qp]*_P_rel[_qp]*(_pressure_l[_qp]-_pressure_g[_qp]);
     
     // Mass trasnfer term:
-    Real _mass = -_area[_qp]*_Omega_gas[_qp]*_Aint[_qp]/_rhoI[_qp];
+    Real _mass = _area[_qp]*_Omega_gas[_qp]*_Aint[_qp]/_rhoI[_qp];
     
     // Return the total expression for the liquid void fraction equation:
-    return (_conv - _rel - _mass) * _test[_i][_qp];
+    return (_conv - _rel + _mass) * _test[_i][_qp];
 }
 
 Real EelVoidFraction::computeQpJacobian()

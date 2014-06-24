@@ -80,6 +80,7 @@ private:
     
     // Gravity vector:
     RealVectorValue _gravity;
+
 };
 
 #endif // EELMOMENTUM_H

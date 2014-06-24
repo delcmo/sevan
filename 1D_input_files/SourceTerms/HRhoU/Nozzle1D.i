@@ -13,33 +13,39 @@ Cjump = 5.
 Calpha = 1.
 ###### Mass and heat transfer ######
 isJumpOn = false
-isMassOn = false
-isHeatOn = false
-isVariableArea = true
-#isVelRelOn = false
-#isPressRelOn = false
+isMassOn = true
+isHeatOn = true
+isVariableArea = false
+isWallFrictOn = true
+isWallHeatOn = true
+isVelRelOn = true
+isPressRelOn = true
 #useLiqViscForVF = true
-Aint = 0.
+Aint = 1.7e4
 
 ###### Boundary Conditions ######
-p0_bc = 1.e6
-T0_bc = 453.
-gamma0_bc = 0.
-alpha0_bc = 0.5
-p_bc = 0.5e6
-T_bc = 453.
-gamma_bc = 0.
-alpha_bc = 0.5
+rhou_vapor = 52.88396082
+H_vapor = 2784615.991053
+rhou_liquid = 1617.42032
+H_liquid = 998407.237
+p_bc = 6.e6
+T_bc = 507.40585735132549
+alpha_bc = 0.999
+wall_frict_liq_value = 0.1
+wall_frict_gas_value = 0.1
+wall_heat_liq_value = 2.e4
+wall_heat_gas_value = 2.e2 # 1.e3
+Twall = 800. # 650. # 800.
 
 ###### Initial Conditions #######
-pressure_init_left = 1e6
-pressure_init_right = 0.5e6
-vel_init_left = 10
-vel_init_right = 10
-temp_init_left = 453.
-temp_init_right = 453.
-alpha_init_left = 0.5
-alpha_init_right = 0.5
+pressure_init_left = 6.e6
+pressure_init_right = 6.e6
+vel_init_left = 2.
+vel_init_right = 2.
+temp_init_left = 507.40585735132549
+temp_init_right = 507.40585735132549
+alpha_init_left = 0.999
+alpha_init_right = 0.999
 membrane = 0.5
 length = 1.
 []
@@ -97,34 +103,6 @@ length = 1.
     execute_on = timestep_begin
   [../]
 
-  [./SmoothJumpGradDensGas]
-    type = SmoothFunction
-    variable = jump_grad_dens_aux_g
-    var_name = smooth_jump_grad_dens_aux_g
-    execute_on = timestep_begin
-  [../]
-
-  [./SmoothJumpGradPressGas]
-    type = SmoothFunction
-    variable = jump_grad_press_aux_g
-    var_name = smooth_jump_grad_press_aux_g
-    execute_on = timestep_begin
-  [../]
-
-  [./SmoothJumpGradDensLiq]
-    type = SmoothFunction
-    variable = jump_grad_dens_aux_l
-    var_name = smooth_jump_grad_dens_aux_l
-    execute_on = timestep_begin
-  [../]
-
-  [./SmoothJumpGradPressLiq]
-    type = SmoothFunction
-    variable = jump_grad_press_aux_l
-    var_name = smooth_jump_grad_press_aux_l
-    execute_on = timestep_begin
-  [../]
-
   [./JumpGradAlphaLiq]
     type = JumpGradientInterface
     variable = alpha_aux_l
@@ -139,7 +117,7 @@ length = 1.
   dim = 1
   nx = 100
   xmin = 0
-  xmax = 1
+  xmax = 3.88
   block_id = '0'
 []
 
@@ -152,7 +130,7 @@ length = 1.
 [Functions]
   [./area]
     type = ParsedFunction
-    value = (1+0.5*cos(2*pi*x))
+    value = 1.e-4 # (1+0.5*cos(2*pi*x))
   [../]
 []
 
@@ -165,7 +143,7 @@ length = 1.
 ####### LIQUID PHASE ########
   [./alA_l]
     family = LAGRANGE
-    scaling = 1e-2
+    scaling = 1e-1
     [./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -175,7 +153,7 @@ length = 1.
 
   [./alrhoA_l]
     family = LAGRANGE
-    scaling = 1e-2
+    scaling = 1e-1
 	[./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -185,7 +163,7 @@ length = 1.
 
   [./alrhouA_l]
     family = LAGRANGE
-    scaling = 1e-4
+    scaling = 1e-1
     [./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -195,7 +173,7 @@ length = 1.
 
   [./alrhoEA_l]
     family = LAGRANGE
-    scaling = 1e-7
+    scaling = 1e-4
 	[./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -206,7 +184,7 @@ length = 1.
 ####### VAPOR PHASE ########
   [./alrhoA_g]
     family = LAGRANGE
-    scaling = 1e-2
+    scaling = 1e-1
     [./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -217,7 +195,7 @@ length = 1.
 
   [./alrhouA_g]
     family = LAGRANGE
-    scaling = 1e-4
+    scaling = 1e-1
     [./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -228,7 +206,7 @@ length = 1.
 
   [./alrhoEA_g]
     family = LAGRANGE
-    scaling = 1e-7
+    scaling = 1e-4
     [./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -285,6 +263,7 @@ length = 1.
   [./MomConvLiq]
     type = EelMomentum
     variable = alrhouA_l
+    alrhoA = alrhoA_l
     vel_x = velocity_x_aux_l
     vel_x_2 = velocity_x_aux_g
     pressure = pressure_aux_l
@@ -384,6 +363,7 @@ length = 1.
   [./MomConvGas]
     type = EelMomentum
     variable = alrhouA_g
+    alrhoA = alrhoA_g
     vel_x = velocity_x_aux_g
     vel_x_2 = velocity_x_aux_l
     pressure = pressure_aux_g
@@ -599,16 +579,6 @@ length = 1.
     order = CONSTANT
   [../]
 
-  [./smooth_jump_grad_press_aux_l]
-    family = MONOMIAL
-    order = CONSTANT
-  [../]
-
-  [./smooth_jump_grad_dens_aux_l]
-    family = MONOMIAL
-    order = CONSTANT
-  [../]
-
 ######### Gas phase ##########
   [./velocity_x_aux_g]
     family = LAGRANGE
@@ -664,16 +634,6 @@ length = 1.
   [../]
 
   [./jump_grad_dens_aux_g]
-    family = MONOMIAL
-    order = CONSTANT
-  [../]
-
-  [./smooth_jump_grad_press_aux_g]
-    family = MONOMIAL
-    order = CONSTANT
-  [../]
-
-  [./smooth_jump_grad_dens_aux_g]
     family = MONOMIAL
     order = CONSTANT
   [../]
@@ -977,18 +937,13 @@ length = 1.
     pressure = pressure_aux_l
     density = density_aux_l
     internal_energy = internal_energy_aux_l
-    jump_grad_press = smooth_jump_grad_press_aux_l
-#    jump_grad_dens = smooth_jump_grad_dens_aux_l
+    jump_grad_press = jump_grad_press_aux_l
+#    jump_grad_dens = jump_grad_dens_aux_l
     jump_grad_alpha = jump_grad_alpha_aux_l
     vf_liquid = alpha_aux_l
     area = area_aux
     norm_velocity = norm_velocity_aux_l
     eos = eos_liq
-    DpressDt_PPS_name = MaxDpressureDtLiq
-    rhov2_PPS_name = AverageRhov2Liq
-#    rhocv_PPS_name = AverageRhocvelLiq
-    rhoc2_PPS_name = AverageRhoc2Liq
-#    press_PPS_name = AveragePressureLiq
     alpha_PPS_name = AverageAlphaLiq
   [../]
 
@@ -999,17 +954,12 @@ length = 1.
     pressure = pressure_aux_g
     density = density_aux_g
     internal_energy = internal_energy_aux_g
-    jump_grad_press = smooth_jump_grad_press_aux_g
-#    jump_grad_dens = smooth_jump_grad_dens_aux_g
+    jump_grad_press = jump_grad_press_aux_g
+#    jump_grad_dens = jump_grad_dens_aux_g
     vf_liquid = alpha_aux_l
     area = area_aux
     norm_velocity = norm_velocity_aux_g
     eos = eos_gas
-    DpressDt_PPS_name = MaxDpressureDtGas
-    rhov2_PPS_name = AverageRhov2Gas
-#    rhocv_PPS_name = AverageRhocvelGas
-    rhoc2_PPS_name = AverageRhoc2Gas
-#    press_PPS_name = AveragePressureGas
     alpha_PPS_name = AverageAlphaLiq
     isLiquid = false
   [../]
@@ -1035,35 +985,12 @@ length = 1.
 # Define functions that are used in the kernels and aux. kernels.                            #
 ##############################################################################################
 [Postprocessors]
-#  [./AveragePressureLiq]
-#    type = ElementAverageAbsValue
-#    variable = pressure_aux_l
-#    #execute_on = timestep_begin
-#  [../]
-
-#  [./AveragePressureGas]
-#    type = ElementAverageAbsValue
-#    variable = pressure_aux_g
-#    #execute_on = timestep_begin
-#  [../]
 
   [./AverageAlphaLiq]
     type = ElementAverageValue # NodalMaxValue
     variable = alpha_aux_l
     #execute_on = timestep_begin
   [../]
-  
-#  [./MaxDpressureDtLiq]
-#    type = ElementMaxDuDtValue
-#    variable = pressure_aux_l
-#    variable2 = mach_number_aux_l
-#  [../]
-  
-#  [./MaxDpressureDtGas]
-#    type = ElementMaxDuDtValue
-#    variable = pressure_aux_g
-#   variable2 = mach_number_aux_g
-#  [../]
 
   [./AverageRhov2Liq]
     type = ElementAverageMultipleValues
@@ -1089,31 +1016,6 @@ length = 1.
     area = area_aux
     isLiquid = false
   [../]
-
-#  [./AverageRhocvelLiq]
-#    type = ElementAverageMultipleValues
-#    variable = norm_velocity_aux_g
-#    output_type = RHOCVEL
-#    alA = alA_l
-#    alrhoA = alrhoA_l
-#    alrhouA_x = alrhouA_l
-#    alrhoEA = alrhoEA_l
-#    eos = eos_liq
-#    area = area_aux
-#  [../]
-
-#  [./AverageRhocvelGas]
-#    type = ElementAverageMultipleValues
-#    variable = norm_velocity_aux_g
-#    output_type = RHOCVEL
-#    alA = alA_l
-#    alrhoA = alrhoA_g
-#    alrhouA_x = alrhouA_g
-#    alrhoEA = alrhoEA_g
-#    eos = eos_gas
-#    area = area_aux
-#    isLiquid = false
-#  [../]
 
   [./AverageRhoc2Liq]
     type = ElementAverageMultipleValues
@@ -1151,16 +1053,18 @@ length = 1.
   [./VoidFractionLeftLiq]
     type = DirichletBC
     variable = alA_l
-    value = 0.75
+    value = 9.99e-5
     boundary = 'left'
   [../]
 ######## Liquid phase ########
   [./MassLeftLiq]
-    type = EelStagnationPandTBC
+    type = EelHRhoUBC
     variable = alrhoA_l
     equation_name = CONTINUITY
+    alA = alA_l
     alrhoA = alrhoA_l
-    alrhouA_n = alrhouA_l
+    alrhouA_x = alrhouA_l
+    alrhoEA = alrhoEA_l
     area = area_aux
     eos = eos_liq
     boundary = 'left'
@@ -1179,11 +1083,13 @@ length = 1.
   [../]
 
   [./MomLeftLiq]
-    type = EelStagnationPandTBC
+    type = EelHRhoUBC
     variable = alrhouA_l
     equation_name = XMOMENTUM
+    alA = alA_l
     alrhoA = alrhoA_l
-    alrhouA_n = alrhouA_l
+    alrhouA_x = alrhouA_l
+    alrhoEA = alrhoEA_l
     area = area_aux
     eos = eos_liq
     boundary = 'left'
@@ -1202,11 +1108,13 @@ length = 1.
   [../]
 
   [./EnergyLeftLiq]
-    type = EelStagnationPandTBC
+    type = EelHRhoUBC
     variable = alrhoEA_l
     equation_name = ENERGY
+    alA = alA_l
     alrhoA = alrhoA_l
-    alrhouA_n = alrhouA_l
+    alrhouA_x = alrhouA_l
+    alrhoEA = alrhoEA_l
     area = area_aux
     eos = eos_liq
     boundary = 'left'
@@ -1226,11 +1134,13 @@ length = 1.
 
 ######## Gas phase ########
   [./MassLeftGas]
-    type = EelStagnationPandTBC
+    type = EelHRhoUBC
     variable = alrhoA_g
     equation_name = CONTINUITY
+    alA = alA_l
     alrhoA = alrhoA_g
-    alrhouA_n = alrhouA_g
+    alrhouA_x = alrhouA_g
+    alrhoEA = alrhoEA_g
     area = area_aux
     eos = eos_gas
     isLiquid = false
@@ -1252,11 +1162,13 @@ length = 1.
   [../]
 
   [./MomLeftGas]
-    type = EelStagnationPandTBC
+    type = EelHRhoUBC
     variable = alrhouA_g
     equation_name = XMOMENTUM
+    alA = alA_l
     alrhoA = alrhoA_g
-    alrhouA_n = alrhouA_g
+    alrhouA_x = alrhouA_g
+    alrhoEA = alrhoEA_g
     area = area_aux
     eos = eos_gas
     isLiquid = false
@@ -1278,11 +1190,13 @@ length = 1.
   [../]
 
   [./EnergyLeftGas]
-    type = EelStagnationPandTBC
+    type = EelHRhoUBC
     variable = alrhoEA_g
     equation_name = ENERGY
+    alA = alA_l
     alrhoA = alrhoA_g
-    alrhouA_n = alrhouA_g
+    alrhouA_x = alrhouA_g
+    alrhoEA = alrhoEA_g
     area = area_aux
     eos = eos_gas
     isLiquid = false
@@ -1316,7 +1230,7 @@ length = 1.
     full = true
     solve_type = 'PJFNK'
     petsc_options_iname = '-mat_fd_coloring_err  -mat_fd_type  -mat_mffd_type'
-    petsc_options_value = '1.e-10       ds             ds'
+    petsc_options_value = '1.e-12       ds             ds'
     line_search = 'default'
   [../]
 
@@ -1338,20 +1252,20 @@ length = 1.
   type = Transient
   scheme = 'bdf2'
 #  num_steps = 1
-  end_time = 2.
+  end_time = 10.
   dt = 1.e-2
   dtmin = 1e-9
   l_tol = 1e-8
   nl_rel_tol = 1e-10
-  nl_abs_tol = 1e-8
+  nl_abs_tol = 1e-10
   l_max_its = 50
   nl_max_its = 10
 [./TimeStepper]
     type = FunctionDT
 #    time_t =  '0.      2.e-4    1.e-2   2.e-2   0.56'
 #    time_dt = '1.e-5   1.e-4    1.e-4   1.e-3   1.e-3'
-    time_t =  '0.      1.e-2    2.e-2   4.e-2   0.56'
-    time_dt = '1.e-4   1.e-4    1.e-3   1.e-2   1.e-2'
+    time_t =  '0.      1.      2.'
+    time_dt = '1.e-2   1.e-2   1.e-1'
 #    time_t =  '0.      1.e-2    3.e-2   1.e-1   0.56'
 #    time_dt = '1.e-2   1.e-3    1.e-3   1.e-3   1.e-3'
   [../]

@@ -29,6 +29,7 @@
 #include "EelStagnationPandTBC.h"
 #include "EelStaticPandTBC.h"
 #include "EelWallBC.h"
+#include "EelHRhoUBC.h"
 #include "MassInflow.h"
 // ICs
 #include "ConservativeVariables1DXIC.h"
@@ -40,6 +41,9 @@
 // Postprocessors
 #include "ElementAverageMultipleValues.h"
 #include "ElementIntegralMultipleVariablesPostprocessor.h"
+#include "ElementAverageAbsValue.h"
+#include "ElementIntegralAbsVariablePostprocessor.h"
+#include "ElementMaxDuDtValue.h"
 // UserObjects
 #include "EquationOfState.h"
 #include "JumpGradientInterface.h"
@@ -55,7 +59,7 @@ InputParameters validParams<SevanApp>()
 SevanApp::SevanApp(const std::string & name, InputParameters parameters) :
     MooseApp(name, parameters)
 {
-  srand(libMesh::processor_id());
+  srand(processor_id());
   
   Moose::registerObjects(_factory);
   ElkApp::registerObjects(_factory);
@@ -106,6 +110,7 @@ SevanApp::registerObjects(Factory & factory)
     registerBoundaryCondition(EelStagnationPandTBC);
     registerBoundaryCondition(EelStaticPandTBC);
     registerBoundaryCondition(EelWallBC);
+    registerBoundaryCondition(EelHRhoUBC);
     registerBoundaryCondition(MassInflow);
     // ICs
     registerInitialCondition(ConservativeVariables1DXIC);
@@ -117,6 +122,9 @@ SevanApp::registerObjects(Factory & factory)
     // Postprocessors
     registerPostprocessor(ElementAverageMultipleValues);
     registerPostprocessor(ElementIntegralMultipleVariablesPostprocessor);
+    registerPostprocessor(ElementAverageAbsValue);
+    registerPostprocessor(ElementIntegralAbsVariablePostprocessor);
+    registerPostprocessor(ElementMaxDuDtValue);
     //UserObjects
     registerUserObject(EquationOfState);
     registerUserObject(JumpGradientInterface);

@@ -130,7 +130,7 @@ Real EelEnergy::computeQpResidual()
     
     // Wall heat source term:
     Real wall_area = std::sqrt(4*libMesh::pi*_area[_qp]+_grad_area[_qp].size_sq());
-    Real source_wall_ht = _wall_ht[_qp]*(_wall_temp[_qp]-temp_phase)*wall_area;
+    Real source_wall_ht = _alpha*_wall_ht[_qp]*(_wall_temp[_qp]-temp_phase)*wall_area;
     
     // Gravity work:
     Real gravity_work = _alrhoA[_qp]*_vel_k*_gravity;

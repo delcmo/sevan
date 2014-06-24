@@ -15,14 +15,19 @@ Calpha = 1.
 isJumpOn = false
 isMassOn = false
 isHeatOn = false
-isVariableArea = true
+isWallFrictOn = true
 #isVelRelOn = false
 #isPressRelOn = false
 #useLiqViscForVF = true
-Aint = 0.
+Aint = 1700.
+wall_frict_liq_value = 0.1
+wall_frict_gas_value = 0.1
+wall_heat_liq_value = 0.
+wall_heat_gas_value = 0.
+Twall = 0.
 
 ###### Boundary Conditions ######
-p0_bc = 1.e6
+p0_bc = 0.51e6
 T0_bc = 453.
 gamma0_bc = 0.
 alpha0_bc = 0.5
@@ -32,10 +37,10 @@ gamma_bc = 0.
 alpha_bc = 0.5
 
 ###### Initial Conditions #######
-pressure_init_left = 1e6
+pressure_init_left = 0.51e6
 pressure_init_right = 0.5e6
-vel_init_left = 10
-vel_init_right = 10
+vel_init_left = 0.
+vel_init_right = 0.
 temp_init_left = 453.
 temp_init_right = 453.
 alpha_init_left = 0.5
@@ -152,7 +157,7 @@ length = 1.
 [Functions]
   [./area]
     type = ParsedFunction
-    value = (1+0.5*cos(2*pi*x))
+    value = 1. # (1+0.5*cos(2*pi*x))
   [../]
 []
 
@@ -285,6 +290,7 @@ length = 1.
   [./MomConvLiq]
     type = EelMomentum
     variable = alrhouA_l
+    alrhoA = alrhoA_l
     vel_x = velocity_x_aux_l
     vel_x_2 = velocity_x_aux_g
     pressure = pressure_aux_l
@@ -384,6 +390,7 @@ length = 1.
   [./MomConvGas]
     type = EelMomentum
     variable = alrhouA_g
+    alrhoA = alrhoA_g
     vel_x = velocity_x_aux_g
     vel_x_2 = velocity_x_aux_l
     pressure = pressure_aux_g
@@ -984,11 +991,6 @@ length = 1.
     area = area_aux
     norm_velocity = norm_velocity_aux_l
     eos = eos_liq
-    DpressDt_PPS_name = MaxDpressureDtLiq
-    rhov2_PPS_name = AverageRhov2Liq
-#    rhocv_PPS_name = AverageRhocvelLiq
-    rhoc2_PPS_name = AverageRhoc2Liq
-#    press_PPS_name = AveragePressureLiq
     alpha_PPS_name = AverageAlphaLiq
   [../]
 
@@ -1005,11 +1007,6 @@ length = 1.
     area = area_aux
     norm_velocity = norm_velocity_aux_g
     eos = eos_gas
-    DpressDt_PPS_name = MaxDpressureDtGas
-    rhov2_PPS_name = AverageRhov2Gas
-#    rhocv_PPS_name = AverageRhocvelGas
-    rhoc2_PPS_name = AverageRhoc2Gas
-#    press_PPS_name = AveragePressureGas
     alpha_PPS_name = AverageAlphaLiq
     isLiquid = false
   [../]
@@ -1035,109 +1032,11 @@ length = 1.
 # Define functions that are used in the kernels and aux. kernels.                            #
 ##############################################################################################
 [Postprocessors]
-#  [./AveragePressureLiq]
-#    type = ElementAverageAbsValue
-#    variable = pressure_aux_l
-#    #execute_on = timestep_begin
-#  [../]
-
-#  [./AveragePressureGas]
-#    type = ElementAverageAbsValue
-#    variable = pressure_aux_g
-#    #execute_on = timestep_begin
-#  [../]
 
   [./AverageAlphaLiq]
     type = ElementAverageValue # NodalMaxValue
     variable = alpha_aux_l
     #execute_on = timestep_begin
-  [../]
-  
-#  [./MaxDpressureDtLiq]
-#    type = ElementMaxDuDtValue
-#    variable = pressure_aux_l
-#    variable2 = mach_number_aux_l
-#  [../]
-  
-#  [./MaxDpressureDtGas]
-#    type = ElementMaxDuDtValue
-#    variable = pressure_aux_g
-#   variable2 = mach_number_aux_g
-#  [../]
-
-  [./AverageRhov2Liq]
-    type = ElementAverageMultipleValues
-    variable = norm_velocity_aux_g
-    output_type = RHOVEL2
-    alA = alA_l
-    alrhoA = alrhoA_l
-    alrhouA_x = alrhouA_l
-    alrhoEA = alrhoEA_l
-    eos = eos_liq
-    area = area_aux
-  [../]
-
-  [./AverageRhov2Gas]
-    type = ElementAverageMultipleValues
-    variable = norm_velocity_aux_g
-    output_type = RHOVEL2
-    alA = alA_l
-    alrhoA = alrhoA_g
-    alrhouA_x = alrhouA_g
-    alrhoEA = alrhoEA_g
-    eos = eos_gas
-    area = area_aux
-    isLiquid = false
-  [../]
-
-#  [./AverageRhocvelLiq]
-#    type = ElementAverageMultipleValues
-#    variable = norm_velocity_aux_g
-#    output_type = RHOCVEL
-#    alA = alA_l
-#    alrhoA = alrhoA_l
-#    alrhouA_x = alrhouA_l
-#    alrhoEA = alrhoEA_l
-#    eos = eos_liq
-#    area = area_aux
-#  [../]
-
-#  [./AverageRhocvelGas]
-#    type = ElementAverageMultipleValues
-#    variable = norm_velocity_aux_g
-#    output_type = RHOCVEL
-#    alA = alA_l
-#    alrhoA = alrhoA_g
-#    alrhouA_x = alrhouA_g
-#    alrhoEA = alrhoEA_g
-#    eos = eos_gas
-#    area = area_aux
-#    isLiquid = false
-#  [../]
-
-  [./AverageRhoc2Liq]
-    type = ElementAverageMultipleValues
-    variable = norm_velocity_aux_g
-    output_type = RHOC2
-    alA = alA_l
-    alrhoA = alrhoA_l
-    alrhouA_x = alrhouA_l
-    alrhoEA = alrhoEA_l
-    eos = eos_liq
-    area = area_aux
-  [../]
-
-  [./AverageRhoc2Gas]
-    type = ElementAverageMultipleValues
-    variable = norm_velocity_aux_g
-    output_type = RHOC2
-    alA = alA_l
-    alrhoA = alrhoA_g
-    alrhouA_x = alrhouA_g
-    alrhoEA = alrhoEA_g
-    eos = eos_gas
-    area = area_aux
-    isLiquid = false
   [../]
 []
 
@@ -1151,7 +1050,7 @@ length = 1.
   [./VoidFractionLeftLiq]
     type = DirichletBC
     variable = alA_l
-    value = 0.75
+    value = 0.5
     boundary = 'left'
   [../]
 ######## Liquid phase ########
@@ -1234,7 +1133,6 @@ length = 1.
     area = area_aux
     eos = eos_gas
     isLiquid = false
-    #value = 1.5
     boundary = 'left'
   [../]
 
@@ -1260,7 +1158,6 @@ length = 1.
     area = area_aux
     eos = eos_gas
     isLiquid = false
-    #value = 0
     boundary = 'left'
   [../]
 
@@ -1338,7 +1235,7 @@ length = 1.
   type = Transient
   scheme = 'bdf2'
 #  num_steps = 1
-  end_time = 2.
+  end_time = 3.
   dt = 1.e-2
   dtmin = 1e-9
   l_tol = 1e-8
@@ -1351,7 +1248,7 @@ length = 1.
 #    time_t =  '0.      2.e-4    1.e-2   2.e-2   0.56'
 #    time_dt = '1.e-5   1.e-4    1.e-4   1.e-3   1.e-3'
     time_t =  '0.      1.e-2    2.e-2   4.e-2   0.56'
-    time_dt = '1.e-4   1.e-4    1.e-3   1.e-2   1.e-2'
+    time_dt = '1.e-3   1.e-1    1.e-1   1.e-1   1.e-1'
 #    time_t =  '0.      1.e-2    3.e-2   1.e-1   0.56'
 #    time_dt = '1.e-2   1.e-3    1.e-3   1.e-3   1.e-3'
   [../]

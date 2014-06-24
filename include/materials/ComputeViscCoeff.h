@@ -50,9 +50,8 @@ private:
     
     // Boolean for phase
     bool _isLiquid;
-    bool _useVelPps;
-    bool _usePressPps;
-    bool _useAlphaPps;
+    bool _isJumpOn;
+    bool _isVariableArea;
     
     // Bool for viscosity coefficient:
     bool _useLiqViscForVF;
@@ -91,6 +90,11 @@ private:
     
     // Norm of the velocity:
     VariableValue & _norm_vel;
+    
+    // Area
+    VariableValue & _area;
+    VariableGradient & _grad_area;
+    
     // Material properties: viscosity coefficients.
     MaterialProperty<Real> & _mu;
     MaterialProperty<Real> & _mu_max;

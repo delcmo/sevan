@@ -10,16 +10,14 @@ viscosity_name = ENTROPY
 diffusion_name = ENTROPY
 Ce = 1.
 Cjump = 5.
-Calpha = 1.
+Calpha = 0.
 ###### Mass and heat transfer ######
 isJumpOn = false
 isMassOn = false
 isHeatOn = false
-isVariableArea = true
 #isVelRelOn = false
 #isPressRelOn = false
 #useLiqViscForVF = true
-Aint = 0.
 
 ###### Boundary Conditions ######
 p0_bc = 1.e6
@@ -34,8 +32,8 @@ alpha_bc = 0.5
 ###### Initial Conditions #######
 pressure_init_left = 1e6
 pressure_init_right = 0.5e6
-vel_init_left = 10
-vel_init_right = 10
+vel_init_left = 0
+vel_init_right = 0
 temp_init_left = 453.
 temp_init_right = 453.
 alpha_init_left = 0.5
@@ -186,11 +184,10 @@ length = 1.
   [./alrhouA_l]
     family = LAGRANGE
     scaling = 1e-4
-    [./InitialCondition]
-        type = ConservativeVariables1DXIC
-        area = area
-        eos = eos_liq
-    [../]
+	[./InitialCondition]
+        type = ConstantIC
+        value = 0.
+	[../]
   [../]
 
   [./alrhoEA_l]
@@ -219,10 +216,8 @@ length = 1.
     family = LAGRANGE
     scaling = 1e-4
     [./InitialCondition]
-        type = ConservativeVariables1DXIC
-        area = area
-        eos = eos_gas
-        isLiquid = false
+        type = ConstantIC
+        value = 0.
     [../]
   [../]
 
@@ -978,17 +973,16 @@ length = 1.
     density = density_aux_l
     internal_energy = internal_energy_aux_l
     jump_grad_press = smooth_jump_grad_press_aux_l
-#    jump_grad_dens = smooth_jump_grad_dens_aux_l
+    jump_grad_dens = smooth_jump_grad_dens_aux_l
     jump_grad_alpha = jump_grad_alpha_aux_l
     vf_liquid = alpha_aux_l
-    area = area_aux
     norm_velocity = norm_velocity_aux_l
     eos = eos_liq
     DpressDt_PPS_name = MaxDpressureDtLiq
     rhov2_PPS_name = AverageRhov2Liq
-#    rhocv_PPS_name = AverageRhocvelLiq
+    rhocv_PPS_name = AverageRhocvelLiq
     rhoc2_PPS_name = AverageRhoc2Liq
-#    press_PPS_name = AveragePressureLiq
+    press_PPS_name = AveragePressureLiq
     alpha_PPS_name = AverageAlphaLiq
   [../]
 
@@ -1000,16 +994,15 @@ length = 1.
     density = density_aux_g
     internal_energy = internal_energy_aux_g
     jump_grad_press = smooth_jump_grad_press_aux_g
-#    jump_grad_dens = smooth_jump_grad_dens_aux_g
+    jump_grad_dens = smooth_jump_grad_dens_aux_g
     vf_liquid = alpha_aux_l
-    area = area_aux
     norm_velocity = norm_velocity_aux_g
     eos = eos_gas
     DpressDt_PPS_name = MaxDpressureDtGas
     rhov2_PPS_name = AverageRhov2Gas
-#    rhocv_PPS_name = AverageRhocvelGas
+    rhocv_PPS_name = AverageRhocvelGas
     rhoc2_PPS_name = AverageRhoc2Gas
-#    press_PPS_name = AveragePressureGas
+    press_PPS_name = AveragePressureGas
     alpha_PPS_name = AverageAlphaLiq
     isLiquid = false
   [../]
@@ -1017,6 +1010,7 @@ length = 1.
   [./InterfacialRelaxationTransfer]
     type = InterfacialRelaxationTransfer
     block = '0'
+    Aint = 5000.
     velocity_x_liq = velocity_x_aux_l
     pressure_liq = pressure_aux_l
     density_liq = density_aux_l
@@ -1035,17 +1029,17 @@ length = 1.
 # Define functions that are used in the kernels and aux. kernels.                            #
 ##############################################################################################
 [Postprocessors]
-#  [./AveragePressureLiq]
-#    type = ElementAverageAbsValue
-#    variable = pressure_aux_l
-#    #execute_on = timestep_begin
-#  [../]
+  [./AveragePressureLiq]
+    type = ElementAverageAbsValue
+    variable = pressure_aux_l
+    #execute_on = timestep_begin
+  [../]
 
-#  [./AveragePressureGas]
-#    type = ElementAverageAbsValue
-#    variable = pressure_aux_g
-#    #execute_on = timestep_begin
-#  [../]
+  [./AveragePressureGas]
+    type = ElementAverageAbsValue
+    variable = pressure_aux_g
+    #execute_on = timestep_begin
+  [../]
 
   [./AverageAlphaLiq]
     type = ElementAverageValue # NodalMaxValue
@@ -1053,17 +1047,17 @@ length = 1.
     #execute_on = timestep_begin
   [../]
   
-#  [./MaxDpressureDtLiq]
-#    type = ElementMaxDuDtValue
-#    variable = pressure_aux_l
-#    variable2 = mach_number_aux_l
-#  [../]
+  [./MaxDpressureDtLiq]
+    type = ElementMaxDuDtValue
+    variable = pressure_aux_l
+    variable2 = mach_number_aux_l
+  [../]
   
-#  [./MaxDpressureDtGas]
-#    type = ElementMaxDuDtValue
-#    variable = pressure_aux_g
-#   variable2 = mach_number_aux_g
-#  [../]
+  [./MaxDpressureDtGas]
+    type = ElementMaxDuDtValue
+    variable = pressure_aux_g
+    variable2 = mach_number_aux_g
+  [../]
 
   [./AverageRhov2Liq]
     type = ElementAverageMultipleValues
@@ -1090,30 +1084,30 @@ length = 1.
     isLiquid = false
   [../]
 
-#  [./AverageRhocvelLiq]
-#    type = ElementAverageMultipleValues
-#    variable = norm_velocity_aux_g
-#    output_type = RHOCVEL
-#    alA = alA_l
-#    alrhoA = alrhoA_l
-#    alrhouA_x = alrhouA_l
-#    alrhoEA = alrhoEA_l
-#    eos = eos_liq
-#    area = area_aux
-#  [../]
+  [./AverageRhocvelLiq]
+    type = ElementAverageMultipleValues
+    variable = norm_velocity_aux_g
+    output_type = RHOCVEL
+    alA = alA_l
+    alrhoA = alrhoA_l
+    alrhouA_x = alrhouA_l
+    alrhoEA = alrhoEA_l
+    eos = eos_liq
+    area = area_aux
+  [../]
 
-#  [./AverageRhocvelGas]
-#    type = ElementAverageMultipleValues
-#    variable = norm_velocity_aux_g
-#    output_type = RHOCVEL
-#    alA = alA_l
-#    alrhoA = alrhoA_g
-#    alrhouA_x = alrhouA_g
-#    alrhoEA = alrhoEA_g
-#    eos = eos_gas
-#    area = area_aux
-#    isLiquid = false
-#  [../]
+  [./AverageRhocvelGas]
+    type = ElementAverageMultipleValues
+    variable = norm_velocity_aux_g
+    output_type = RHOCVEL
+    alA = alA_l
+    alrhoA = alrhoA_g
+    alrhouA_x = alrhouA_g
+    alrhoEA = alrhoEA_g
+    eos = eos_gas
+    area = area_aux
+    isLiquid = false
+  [../]
 
   [./AverageRhoc2Liq]
     type = ElementAverageMultipleValues
@@ -1337,27 +1331,27 @@ length = 1.
 [Executioner]
   type = Transient
   scheme = 'bdf2'
-#  num_steps = 1
-  end_time = 2.
-  dt = 1.e-2
+  #num_steps = 10
+  end_time = 1.
+  #dt = 1.e-4
   dtmin = 1e-9
   l_tol = 1e-8
-  nl_rel_tol = 1e-10
-  nl_abs_tol = 1e-8
+  nl_rel_tol = 1e-8
+  nl_abs_tol = 1e-7
   l_max_its = 50
-  nl_max_its = 10
+  nl_max_its = 30
 [./TimeStepper]
     type = FunctionDT
 #    time_t =  '0.      2.e-4    1.e-2   2.e-2   0.56'
 #    time_dt = '1.e-5   1.e-4    1.e-4   1.e-3   1.e-3'
-    time_t =  '0.      1.e-2    2.e-2   4.e-2   0.56'
-    time_dt = '1.e-4   1.e-4    1.e-3   1.e-2   1.e-2'
-#    time_t =  '0.      1.e-2    3.e-2   1.e-1   0.56'
-#    time_dt = '1.e-2   1.e-3    1.e-3   1.e-3   1.e-3'
+#    time_t =  '0.      2.e-2    3.e-2   4.e-2   0.56'
+#    time_dt = '1.e-4   1.e-3    1.e-3   1.e-2   1.e-2'
+    time_t =  '0.      2.e-3    2.e-2   1.e-1   0.56'
+    time_dt = '1.e-3   1.e-3    1.e-3   1.e-3   1.e-3'
   [../]
   [./Quadrature]
-    type = GAUSS
-    order = SECOND
+    type = TRAP
+    order = FIRST
   [../]
 []
 
@@ -1372,7 +1366,7 @@ length = 1.
   interval = 1
   console = true
   exodus = true
-  postprocessor_screen = true
+  postprocessor_screen = false
   perf_log = true
 []
 
