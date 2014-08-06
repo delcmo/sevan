@@ -45,7 +45,7 @@ Real
 TotalEnergyAux::computeValue()
 {
     // Compute the phase void fraction:
-    Real _alpha = (1-(double)_isLiquid)*(1-_alpha_liq[_qp]) + (double)_isLiquid*_alpha_liq[_qp];
+    Real _alpha = _isLiquid ? _alpha_liq[_qp] : 1.-_alpha_liq[_qp];
     
     // Return the value of the total energy:
   return _alrhoEA[_qp] / (_alpha*_area[_qp]) ;

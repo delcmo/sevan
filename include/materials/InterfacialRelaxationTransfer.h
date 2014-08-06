@@ -21,6 +21,18 @@ protected:
   virtual void computeQpProperties();
 
 private:
+    // Variable for definition of the interfacial variables:
+    enum InterfacialType
+    {
+        BERRY = 0,
+        AMBROSSO = 1,
+        LIANG = 2
+    };
+    std::string _interf_def_name;
+    MooseEnum _interf_def;
+    
+    Real _xi;
+    
     // Boolean for mass and heat transfers:
     bool _isMassOn;
     bool _isHeatOn;
@@ -51,6 +63,7 @@ private:
     MaterialProperty<Real> & _Aint;
     MaterialProperty<Real> & _PI;
     MaterialProperty<RealVectorValue> & _velI;
+    MaterialProperty<Real> & _velI_norm;
     MaterialProperty<Real> & _PI_bar;
     MaterialProperty<RealVectorValue> & _velI_bar;
     MaterialProperty<Real> & _tempI;

@@ -52,7 +52,7 @@ Real
 InternalEnergyAux::computeValue()
 {
     // Compute the phase void fraction:
-    Real _alpha = (1-(double)_isLiquid)*(1-_alpha_liq[_qp]) + (double)_isLiquid*_alpha_liq[_qp];
+    Real _alpha = _isLiquid ? _alpha_liq[_qp] : 1.-_alpha_liq[_qp];
     
     // Compute density, norm of velocity and total energy:
     Real _rhoE = _alrhoEA[_qp] / (_area[_qp]*_alpha);

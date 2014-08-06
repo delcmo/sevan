@@ -51,10 +51,10 @@ private:
     // Boolean for phase
     bool _isLiquid;
     bool _isJumpOn;
-    bool _isVariableArea;
     
     // Bool for viscosity coefficient:
-    bool _useLiqViscForVF;
+    bool _isShock;
+    bool _areViscEqual;
     
     // Liquid void fraction:
     VariableValue & _alpha_l;
@@ -80,16 +80,10 @@ private:
     VariableValue & _rho_older;
     VariableGradient & _grad_rho;
     
-    // Internal energy
-    VariableValue & _rhoe;
-    
     // Variables for jump:
     VariableValue & _jump_grad_press;
     VariableValue & _jump_grad_dens;
     VariableValue & _jump_grad_alpha;
-    
-    // Norm of the velocity:
-    VariableValue & _norm_vel;
     
     // Area
     VariableValue & _area;
@@ -103,14 +97,11 @@ private:
     MaterialProperty<Real> & _beta;
     MaterialProperty<Real> & _beta_max;
     
-    // Interfactial variable:
-    MaterialProperty<Real> & _PIbar;
-    MaterialProperty<Real> & _Prel;
-    
     // Material property: interfacial velocity.
     MaterialProperty<RealVectorValue> & _velI;
 
     // Multiplicative coefficient for viscosity:
+    double _Cmax;
     double _Ce;
     double _Cjump;
     double _Calpha;
@@ -118,11 +109,8 @@ private:
     // UserObject: equation of state
     const EquationOfState & _eos;
     
-    // Name of the posprocessors for pressure, velocity and void fraction:
+    // Name of the posprocessors for rhov2 and void fraction:
     std::string _rhov2_pps_name;
-    std::string _rhocv_pps_name;
-    std::string _rhoc2_pps_name;
-    std::string _press_pps_name;
     std::string _alpha_pps_name;
 };
 

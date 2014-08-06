@@ -56,7 +56,7 @@ Real
 MachNumberAux::computeValue()
 {
     // Compute the phase void fraction:
-    Real _alpha = (1-(double)_isLiquid)*(1-_alpha_liq[_qp]) + (double)_isLiquid*_alpha_liq[_qp];
+    Real _alpha = _isLiquid ? _alpha_liq[_qp] : 1.-_alpha_liq[_qp];
     
     // Compute the norm of velocity and density:
     Real _rho = _alrhoA[_qp] / (_area[_qp]*_alpha);

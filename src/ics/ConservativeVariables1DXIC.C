@@ -22,12 +22,20 @@ InputParameters validParams<ConservativeVariables1DXIC>()
     // Initial conditions:
     params.addRequiredParam<Real>("pressure_init_left", "Initial pressure on the left");
     params.addRequiredParam<Real>("pressure_init_right", "Initial pressure on the right");
+    params.addParam<Real>("pressure_init_left_gas", "Initial GAS pressure on the left");
+    params.addParam<Real>("pressure_init_right_gas", "Initial GAS pressure on the right");
     params.addRequiredParam<Real>("vel_init_left", "Initial velocity on the left");
     params.addRequiredParam<Real>("vel_init_right", "Inital velocity on the right");
-    params.addRequiredParam<Real>("temp_init_left", "Initial value of the LIQUID temperature");
-    params.addRequiredParam<Real>("temp_init_right", "Initial value of the LIQUID temperature");
-    params.addParam<Real>("temp_init_left_gas", -1, "Initial value of the GAS temperature if different from liquid temperature");
-    params.addParam<Real>("temp_init_right_gas", -1, "Initial value of the GAS temperature if different from liquid temperature");
+    params.addParam<Real>("vel_init_left_gas", "Initial GAS velocity on the left");
+    params.addParam<Real>("vel_init_right_gas", "Inital GAS velocity on the right");
+    params.addParam<Real>("temp_init_left", "Initial value of the LIQUID temperature");
+    params.addParam<Real>("temp_init_right", "Initial value of the LIQUID temperature");
+    params.addParam<Real>("temp_init_left_gas", "Initial value of the GAS temperature if different from liquid temperature");
+    params.addParam<Real>("temp_init_right_gas", "Initial value of the GAS temperature if different from liquid temperature");
+    params.addParam<Real>("rho_init_left_liq", "Initial value of the LIQUID density");
+    params.addParam<Real>("rho_init_right_liq", "Initial value of the LIQUID density");
+    params.addParam<Real>("rho_init_left_gas", "Initial value of the GAS density");
+    params.addParam<Real>("rho_init_right_gas", "Initial value of the GAS density");
     params.addRequiredParam<Real>("alpha_init_left", "Initial value of the LIQUID void fraction");
     params.addRequiredParam<Real>("alpha_init_right", "Initial value of the LIQUID void fraction");
     // Membrane position:
@@ -46,14 +54,22 @@ ConservativeVariables1DXIC::ConservativeVariables1DXIC(const std::string & name,
     // Function
     _area(getFunction("area")),
 	// IC parameters
-    _p_left(getParam<Real>("pressure_init_left")),
-    _p_right(getParam<Real>("pressure_init_right")),
-    _v_left(getParam<Real>("vel_init_left")),
-    _v_right(getParam<Real>("vel_init_right")),
+    _p_left_liq(getParam<Real>("pressure_init_left")),
+    _p_right_liq(getParam<Real>("pressure_init_right")),
+    _p_left_gas(isParamValid("pressure_init_left_gas") ? getParam<Real>("pressure_init_left_gas") : getParam<Real>("pressure_init_left")),
+    _p_right_gas(isParamValid("pressure_init_right_gas") ? getParam<Real>("pressure_init_right_gas") : getParam<Real>("pressure_init_right")),
+    _v_left_liq(getParam<Real>("vel_init_left")),
+    _v_right_liq(getParam<Real>("vel_init_right")),
+    _v_left_gas(isParamValid("vel_init_left_gas") ? getParam<Real>("vel_init_left_gas") : getParam<Real>("vel_init_left")),
+    _v_right_gas(isParamValid("vel_init_right_gas") ? getParam<Real>("vel_init_right_gas") : getParam<Real>("vel_init_right")),
     _t_left_liq(getParam<Real>("temp_init_left")),
     _t_right_liq(getParam<Real>("temp_init_right")),
-    _t_left_gas(getParam<Real>("temp_init_left_gas")),
-    _t_right_gas(getParam<Real>("temp_init_right_gas")),
+    _t_left_gas(isParamValid("temp_init_left_gas") ? getParam<Real>("temp_init_left_gas") : getParam<Real>("temp_init_left")),
+    _t_right_gas(isParamValid("temp_init_right_gas") ? getParam<Real>("temp_init_right_gas") : getParam<Real>("temp_init_right")),
+    _rho_left_liq(getParam<Real>("rho_init_left_liq")),
+    _rho_right_liq(getParam<Real>("rho_init_right_liq")),
+    _rho_left_gas(getParam<Real>("rho_init_left_gas")),
+    _rho_right_gas(getParam<Real>("rho_init_right_gas")),
     _alpha_left(getParam<Real>("alpha_init_left")),
     _alpha_right(getParam<Real>("alpha_init_right")),
     // Position of the membrane:
@@ -64,12 +80,10 @@ ConservativeVariables1DXIC::ConservativeVariables1DXIC(const std::string & name,
     // Boolean:
     _isLiquid(getParam<bool>("isLiquid"))
 {
-    if (_t_left_gas == -1) {
-        _t_left_gas = _t_left_liq;
-    }
-    if (_t_right_gas == -1) {
-        _t_right_gas = _t_right_liq;
-    }
+    if ( isParamValid("temp_init_left") && isParamValid("temp_init_right") )
+        _isDensity = false;
+    else
+        _isDensity = true;
 }
 
 Real
@@ -78,56 +92,78 @@ ConservativeVariables1DXIC::value(const Point & p)
 // Define and compute parameters used to smooth the initial condition if wished
 Real _x1 = _membrane - 0.5 * _length;
 Real _x2 = _x1 + _length;
-Real _a_p, _b_p, _a_vel, _b_vel, _a_t, _b_t, _a_al, _b_al;
+Real _a_p, _b_p, _a_vel, _b_vel, _a_t, _b_t, _a_rho, _b_rho, _a_al, _b_al;
+Real _p_left = _isLiquid ? _p_left_liq : _p_left_gas;
+Real _p_right = _isLiquid ? _p_right_liq : _p_right_gas;
 _a_p = ( _p_left - _p_right) / ( _x1 - _x2 );
 _b_p = ( _x1*_p_right - _x2*_p_left ) / ( _x1 - _x2 );
+Real _v_left = _isLiquid ? _v_left_liq : _v_left_gas;
+Real _v_right = _isLiquid ? _v_right_liq : _v_right_gas;
 _a_vel = ( _v_left - _v_right) / ( _x1 - _x2 );
 _b_vel = ( _x1*_v_right - _x2*_v_left ) / ( _x1 - _x2 );
-Real _t_left = (1-(double)_isLiquid)*_t_left_gas + (double)_isLiquid*_t_left_liq;
-Real _t_right = (1-(double)_isLiquid)*_t_right_gas + (double)_isLiquid*_t_right_liq;
-_a_t = ( _t_left - _t_right) / ( _x1 - _x2 );
-_b_t = ( _x1*_t_right - _x2*_t_left ) / ( _x1 - _x2 );
+Real _t_left, _t_right, _rho_right, _rho_left;
+if (!_isDensity)
+{
+    _t_left = _isLiquid ? _t_left_liq : _t_left_gas;
+    _t_right = _isLiquid ? _t_right_liq : _t_right_gas;
+    _a_t = ( _t_left - _t_right) / ( _x1 - _x2 );
+    _b_t = ( _x1*_t_right - _x2*_t_left ) / ( _x1 - _x2 );
+}
+else
+{
+    _rho_left = _isLiquid ? _rho_left_liq : _rho_left_gas;
+    _rho_right = _isLiquid ? _rho_right_liq : _rho_right_gas;
+    _a_rho = ( _rho_left - _rho_right) / ( _x1 - _x2 );
+    _b_rho = ( _x1*_rho_right - _x2*_rho_left ) / ( _x1 - _x2 );
+}
 _a_al = ( _alpha_left - _alpha_right) / ( _x1 - _x2 );
 _b_al = ( _x1*_alpha_right - _x2*_alpha_left ) / ( _x1 - _x2 );
 // Get the name of the variable this object acts on
 std::string _name_var = _var.name();
-    //std::cout<<"###########name="<<_name_var<<std::endl;
 // Compute the pressure, velocity and temperature values
 Real _pressure = 0.;
 Real _temp = 0.;
+Real _rho = 0.;
 Real _vel = 0.;
 Real _alpha = 0.;
-  if ( p(0) <= _x1 )
-	{
-        _pressure = _p_left;
-        _vel = _v_left;
-        _temp = (1-(double)_isLiquid)*_t_left_gas + (double)_isLiquid*_t_left_liq;
-        _alpha = (1-(double)_isLiquid)*(1-_alpha_left) + (double)_isLiquid*_alpha_left;
-	}
-  else if ( p(0) >= _x2 )
-	{
-        _pressure = _p_right;
-        _vel = _v_right;
-        _temp = (1-(double)_isLiquid)*_t_right_gas + (double)_isLiquid*_t_right_liq;
-        _alpha = (1-(double)_isLiquid)*(1-_alpha_right) + (double)_isLiquid*_alpha_right;
-	}
-  else
-	{
-        _pressure = ( _a_p * p(0) + _b_p );
-        _vel = ( _a_vel * p(0) + _b_vel );
+if ( p(0) <= _x1 )
+{
+    _pressure = _p_left;
+    _vel = _v_left;
+    if (!_isDensity)
+        _temp = _t_left;
+    else
+        _rho = _rho_left;
+    _alpha = _isLiquid ? _alpha_left : 1. - _alpha_left;
+}
+else if ( p(0) >= _x2 )
+{
+    _pressure = _p_right;
+    _vel = _v_right;
+    if (!_isDensity)
+        _temp = _t_right;
+    else
+        _rho = _rho_right;
+    _alpha = _isLiquid ? _alpha_right : 1. - _alpha_right;
+}
+else
+{
+    _pressure = ( _a_p * p(0) + _b_p );
+    _vel = ( _a_vel * p(0) + _b_vel );
+    if (!_isDensity)
         _temp = ( _a_t * p(0) + _b_t );
-        _alpha = (1-(double)_isLiquid)*(1-_a_al*p(0)-_b_al) + (double)_isLiquid*(_a_al*p(0)+_b_al);
-	}
+    else
+        _rho = ( _a_rho * p(0) + _b_rho );
+    _alpha = _isLiquid ? _a_al*p(0)+_b_al : 1-_a_al*p(0)-_b_al;
+}
 // Compute the conservative variables
-    /*std::cout<<"Pinf="<<_eos.Pinf()<<std::endl;
-    std::cout<<"gamma="<<_eos.gamma()<<std::endl;
-    std::cout<<"temp="<<_temp<<std::endl;
-    std::cout<<"alpha="<<_alpha<<std::endl;*/
-//std::cout<<(_pressure + _eos.Pinf()) / (_eos.Cv()*(_eos.gamma()-1)*_temp)<<std::endl;
-Real _density = (_pressure + _eos.Pinf()) / (_eos.Cv()*(_eos.gamma()-1)*_temp);
+Real _density = 0.;
+if (!_isDensity)
+    _density = (_pressure + _eos.Pinf()) / (_eos.Cv()*(_eos.gamma()-1)*_temp);
+else
+    _density = _rho;
 Real _int_energy = (_pressure+_eos.gamma()*_eos.Pinf())/(_density*(_eos.gamma()-1)) + _eos.qcoeff();
 Real _tot_energy = _density*(_int_energy + 0.5*_vel*_vel);
-    //std::cout<<"density"<<_density<<std::endl;
 // Value of the area:
     Real _A = _area.value(0., p);
 // Return the value of the initial condition. Identify the name of the variable

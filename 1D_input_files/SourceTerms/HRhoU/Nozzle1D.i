@@ -21,7 +21,7 @@ isWallHeatOn = true
 isVelRelOn = true
 isPressRelOn = true
 #useLiqViscForVF = true
-Aint = 1.7e4
+Aint = 1.e2
 
 ###### Boundary Conditions ######
 rhou_vapor = 52.88396082
@@ -33,9 +33,9 @@ T_bc = 507.40585735132549
 alpha_bc = 0.999
 wall_frict_liq_value = 0.1
 wall_frict_gas_value = 0.1
-wall_heat_liq_value = 2.e4
-wall_heat_gas_value = 2.e2 # 1.e3
-Twall = 800. # 650. # 800.
+wall_heat_liq_value = 2.e3
+wall_heat_gas_value = 0. # 2.e2 # 1.e3
+Twall = 600. # 650. # 800.
 
 ###### Initial Conditions #######
 pressure_init_left = 6.e6
@@ -115,7 +115,7 @@ length = 1.
 [Mesh]
   type = GeneratedMesh
   dim = 1
-  nx = 100
+  nx = 50
   xmin = 0
   xmax = 3.88
   block_id = '0'
@@ -1265,7 +1265,7 @@ length = 1.
 #    time_t =  '0.      2.e-4    1.e-2   2.e-2   0.56'
 #    time_dt = '1.e-5   1.e-4    1.e-4   1.e-3   1.e-3'
     time_t =  '0.      1.      2.'
-    time_dt = '1.e-2   1.e-2   1.e-1'
+    time_dt = '1.e-3   1.e-1   1.e-1'
 #    time_t =  '0.      1.e-2    3.e-2   1.e-1   0.56'
 #    time_dt = '1.e-2   1.e-3    1.e-3   1.e-3   1.e-3'
   [../]

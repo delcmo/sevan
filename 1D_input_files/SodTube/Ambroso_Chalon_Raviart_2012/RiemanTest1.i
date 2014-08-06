@@ -11,21 +11,22 @@ order = FIRST
 viscosity_name = ENTROPY
 diffusion_name = ENTROPY
 Ce = 1.
-Cjump_liquid = 3.
-Cjump_gas = 5.
-Calpha = 1.
-isWeakShock = true
+Cjump_liquid = 1.
+Cjump_gas = 1.
+Calpha = 3.
+isShock = true
+isJumpOn = true
 
 ###### Initial Conditions #######
-pressure_init_left = 1.e9
+pressure_init_left = 1.e5
 pressure_init_right = 1.e5
-vel_init_left = 0
-vel_init_right = 0
-temp_init_left = 4.7058824e2
-temp_init_right = 1.765e2
-temp_init_left_gas = 5.e5
-temp_init_right_gas = 50.
-alpha_init_left = 0.5
+vel_init_left = 100.
+vel_init_right = 100.
+temp_init_left = 1.e5
+temp_init_right = 1.e5
+temp_init_left_gas = 8.e5
+temp_init_right_gas = 8.e5
+alpha_init_left = 0.9
 alpha_init_right = 0.5
 membrane = 0.5
 length = 0.
@@ -43,16 +44,16 @@ length = 0.
   	gamma = 1.4
   	Pinf = 0
     q = 0.
-  	Cv = 1.e2
-  	q_prime = -23e3
+  	Cv = 2.5
+  	q_prime = 0.
   [../]
 
   [./eos_liq]
     type = EquationOfState
-    gamma = 4.4
-    Pinf = 6.e8
+    gamma = 1.4
+    Pinf = 0.
     q = 0.
-    Cv = 1.e3
+    Cv = 2.5
     q_prime = 0.
   [../]
   
@@ -84,34 +85,12 @@ length = 0.
     execute_on = timestep_begin
   [../]
 
-  [./SmoothJumpGradDensGas]
-    type = SmoothFunction
-    variable = jump_grad_dens_aux_g
-    var_name = smooth_jump_grad_dens_aux_g
+  [./JumpGradAlpha]
+    type = JumpGradientInterface
+    variable = alpha_aux_l
+    jump_name = jump_grad_alpha_aux
     execute_on = timestep_begin
   [../]
-
-  [./SmoothJumpGradPressGas]
-    type = SmoothFunction
-    variable = jump_grad_press_aux_g
-    var_name = smooth_jump_grad_press_aux_g
-    execute_on = timestep_begin
-  [../]
-
-  [./SmoothJumpGradDensLiq]
-    type = SmoothFunction
-    variable = jump_grad_dens_aux_l
-    var_name = smooth_jump_grad_dens_aux_l
-    execute_on = timestep_begin
-  [../]
-
-  [./SmoothJumpGradPressLiq]
-    type = SmoothFunction
-    variable = jump_grad_press_aux_l
-    var_name = smooth_jump_grad_press_aux_l
-    execute_on = timestep_begin
-  [../]
-
 []
 
 ###### Mesh #######
@@ -136,7 +115,7 @@ length = 0.
 ####### LIQUID PHASE ########
   [./alA_l]
     family = LAGRANGE
-    scaling = 1e-8
+    scaling = 1e-1
     [./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -146,7 +125,7 @@ length = 0.
 
   [./alrhoA_l]
     family = LAGRANGE
-    scaling = 1e-8
+    scaling = 1e-6
 	[./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -156,16 +135,17 @@ length = 0.
 
   [./alrhouA_l]
     family = LAGRANGE
-    scaling = 1e-8
+    scaling = 1e-6
 	[./InitialCondition]
-        type = ConstantIC
-        value = 0.
+        type = ConservativeVariables1DXIC
+        area = area
+        eos = eos_liq
 	[../]
   [../]
 
   [./alrhoEA_l]
     family = LAGRANGE
-    scaling = 1e-8
+    scaling = 1e-6
 	[./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -176,7 +156,7 @@ length = 0.
 ####### VAPOR PHASE ########
   [./alrhoA_g]
     family = LAGRANGE
-    scaling = 1e-8
+    scaling = 1e-6
     [./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -187,16 +167,18 @@ length = 0.
 
   [./alrhouA_g]
     family = LAGRANGE
-    scaling = 1e-8
+    scaling = 1e-6
     [./InitialCondition]
-        type = ConstantIC
-        value = 0.
+        type = ConservativeVariables1DXIC
+        area = area
+        eos = eos_gas
+        isLiquid = false
     [../]
   [../]
 
   [./alrhoEA_g]
     family = LAGRANGE
-    scaling = 1e-8
+    scaling = 1e-6
     [./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -432,6 +414,91 @@ length = 0.
   [./alpha_aux_l]
     family = LAGRANGE
   [../]
+
+  [./PI_aux]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+#  [./velI_aux]
+#    family = MONOMIAL
+#    order = CONSTANT
+#  [../]
+
+  [./PI_bar_aux]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+#  [./velI_bar_aux]
+#    family = MONOMIAL
+#    order = CONSTANT
+#  [../]
+
+  [./rhoI_aux]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./tempI_aux]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./P_rel_aux]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./vel_rel_aux]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./Omega_aux]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./Aint_aux]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./ht_liq_aux]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./ht_gas_aux]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./EI_liq_aux]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./EI_gas_aux]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./beta_aux]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./beta_max_aux]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./jump_grad_alpha_aux]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
 ######### Liquid phase ##########
    [./velocity_x_aux_l]
       family = LAGRANGE
@@ -453,7 +520,7 @@ length = 0.
       family = LAGRANGE
    [../]
 
-   [./mach_aux_l]
+   [./temperature_aux_l]
     family = LAGRANGE
    [../]
 
@@ -491,16 +558,6 @@ length = 0.
     family = MONOMIAL
     order = CONSTANT
   [../]
-
-  [./smooth_jump_grad_press_aux_l]
-    family = MONOMIAL
-    order = CONSTANT
-  [../]
-
-  [./smooth_jump_grad_dens_aux_l]
-    family = MONOMIAL
-    order = CONSTANT
-  [../]
 ######### Gas phase ##########
   [./velocity_x_aux_g]
     family = LAGRANGE
@@ -522,7 +579,7 @@ length = 0.
     family = LAGRANGE
   [../]
 
-  [./mach_aux_g]
+  [./temperature_aux_g]
     family = LAGRANGE
   [../]
 
@@ -555,16 +612,6 @@ length = 0.
     family = MONOMIAL
     order = CONSTANT
   [../]
-
-  [./smooth_jump_grad_press_aux_g]
-    family = MONOMIAL
-    order = CONSTANT
-  [../]
-
-  [./smooth_jump_grad_dens_aux_g]
-    family = MONOMIAL
-    order = CONSTANT
-  [../]
 []
 
 ##############################################################################################
@@ -588,6 +635,101 @@ length = 0.
     area = area_aux
   [../]
 
+  [./PIAK]
+    type = MaterialRealAux
+    variable = PI_aux
+    property = interfacial_pressure
+  [../]
+
+#  [./VelIAK]
+#    type = MaterialRealAux
+#    variable = velI_aux
+#    property = interfacial_velocity
+#  [../]
+
+  [./PIbarAK]
+    type = MaterialRealAux
+    variable = PI_bar_aux
+    property = average_interfacial_pressure
+  [../]
+
+#  [./VelIbarAK]
+#    type = MaterialRealAux
+#    variable = velI_bar_aux
+#    property = average_interfacial_velocity
+#  [../]
+
+  [./rhoIAK]
+    type = MaterialRealAux
+    variable = rhoI_aux
+    property = interfacial_density
+  [../]
+
+  [./tempIAK]
+    type = MaterialRealAux
+    variable = tempI_aux
+    property = interfacial_temperature
+  [../]
+
+  [./PrelIAK]
+    type = MaterialRealAux
+    variable = P_rel_aux
+    property = pressure_relaxation
+  [../]
+
+  [./VrelIAK]
+    type = MaterialRealAux
+    variable = vel_rel_aux
+    property = velocity_relaxation
+  [../]
+
+  [./EIAKLiq]
+    type = MaterialRealAux
+    variable = EI_liq_aux
+    property = liquid_interfacial_energy
+  [../]
+
+  [./EIAKGas]
+    type = MaterialRealAux
+    variable = EI_gas_aux
+    property = gas_interfacial_energy
+  [../]
+
+  [./htAKLiq]
+    type = MaterialRealAux
+    variable = ht_liq_aux
+    property = liquid_heat_transfer
+  [../]
+
+  [./htAKGas]
+    type = MaterialRealAux
+    variable = ht_gas_aux
+    property = gas_heat_transfer
+  [../]
+
+  [./MassAKLiq]
+    type = MaterialRealAux
+    variable = Omega_aux
+    property = mass_transfer
+  [../]
+
+  [./AintAKGas]
+    type = MaterialRealAux
+    variable = Aint_aux
+    property = interfacial_area
+  [../]
+
+  [./BetaAK]
+    type = MaterialRealAux
+    variable = beta_aux
+    property = beta
+  [../]
+
+  [./BetaMaxAK]
+    type = MaterialRealAux
+    variable = beta_max_aux
+    property = beta_max
+  [../]
 ####### Liquid phase ##########
   [./VelAKLiq]
     type = VelocityAux
@@ -633,14 +775,11 @@ length = 0.
     eos = eos_liq
   [../]
 
-  [./MachAKLiq]
-    type = MachNumberAux
-    variable = mach_aux_l
-    alrhoA = alrhoA_l
-    alrhouA_x = alrhouA_l
-    vf_liquid = alpha_aux_l
+  [./TempAKLiq]
+    type = TemperatureAux
+    variable = temperature_aux_l
     pressure = pressure_aux_l
-    area = area_aux
+    density = density_aux_l
     eos = eos_liq
   [../]
 
@@ -716,15 +855,11 @@ length = 0.
     isLiquid = false
   [../]
 
-  [./MachAKGas]
-    type = MachNumberAux
-    variable = mach_aux_g
-    alrhoA = alrhoA_g
-    alrhouA_x = alrhouA_g
-    vf_liquid = alpha_aux_l
+  [./TempAKGas]
+    type = TemperatureAux
+    variable = temperature_aux_g
     pressure = pressure_aux_g
-    area = area_aux
-    isLiquid = false
+    density = density_aux_g
     eos = eos_gas
   [../]
 
@@ -766,8 +901,9 @@ length = 0.
     velocity_x = velocity_x_aux_l
     pressure = pressure_aux_l
     density = density_aux_l
-    jump_grad_press = smooth_jump_grad_press_aux_l
-    jump_grad_dens = smooth_jump_grad_dens_aux_l
+    jump_grad_press = jump_grad_press_aux_l
+    jump_grad_dens = jump_grad_dens_aux_l
+    jump_grad_alpha = jump_grad_alpha_aux
     vf_liquid = alpha_aux_l
     eos = eos_liq
     rhov2_PPS_name = PpsRhoVel2Liq
@@ -780,8 +916,8 @@ length = 0.
     velocity_x = velocity_x_aux_g
     pressure = pressure_aux_g
     density = density_aux_g
-    jump_grad_press = smooth_jump_grad_press_aux_g
-    jump_grad_dens = smooth_jump_grad_dens_aux_g
+    jump_grad_press = jump_grad_press_aux_g
+    jump_grad_dens = jump_grad_dens_aux_g
     vf_liquid = alpha_aux_l
     eos = eos_gas
     isLiquid = false
@@ -792,7 +928,7 @@ length = 0.
   [./InterfacialRelaxationTransfer]
     type = InterfacialRelaxationTransfer
     block = '0'
-    Aint = 0. # 1.e5
+    Aint = 0.
     velocity_x_liq = velocity_x_aux_l
     pressure_liq = pressure_aux_l
     density_liq = density_aux_l
@@ -855,49 +991,49 @@ length = 0.
   [./VoidFractionLeftLiq]
     type = DirichletBC
     variable = alA_l
-    value = 0.5
+    value = 0.9
     boundary = 'left'
   [../]
 ######## Liquid phase ########
   [./MassLeftLiq]
     type = DirichletBC
     variable = alrhoA_l
-    value = 500.
+    value = 0.9
     boundary = 'left'
   [../]
 
   [./MassRightLiq]
     type = DirichletBC
     variable = alrhoA_l
-    value = 500.
+    value = 0.5
     boundary = 'right'
   [../]
 
   [./MomLeftLiq]
     type = DirichletBC
     variable = alrhouA_l
-    value = 0.
+    value = 90.
     boundary = 'left'
   [../]
 
   [./MomRightLiq]
     type = DirichletBC
     variable = alrhouA_l
-    value = 0.
+    value = 50.
     boundary = 'right'
   [../]
 
   [./EnergyLeftLiq]
     type = DirichletBC
     variable = alrhoEA_l
-    value = 535294112.0
+    value = 229500.0
     boundary = 'left'
   [../]
 
   [./EnergyRightLiq]
     type = DirichletBC
     variable = alrhoEA_l
-    value = 388249984.0
+    value = 127500.0
     boundary = 'right'
   [../]
 
@@ -905,42 +1041,42 @@ length = 0.
   [./MassLeftGas]
     type = DirichletBC
     variable = alrhoA_g
-    value = 25.
+    value = 0.0125
     boundary = 'left'
   [../]
 
   [./MassRightGas]
     type = DirichletBC
     variable = alrhoA_g
-    value = 25.
+    value = 0.0625
     boundary = 'right'
   [../]
 
   [./MomLeftGas]
     type = DirichletBC
     variable = alrhouA_g
-    value = 0.
+    value = 1.25
     boundary = 'left'
   [../]
 
   [./MomRightGas]
     type = DirichletBC
     variable = alrhouA_g
-    value = 0.
+    value = 6.25
     boundary = 'right'
   [../]
 
   [./EnergyLeftGas]
     type = DirichletBC
     variable = alrhoEA_g
-    value = 1.25e9
+    value = 25062.50
     boundary = 'left'
   [../]
 
   [./EnergyRightGas]
     type = DirichletBC
     variable = alrhoEA_g
-    value = 1.25e5
+    value = 125312.50
     boundary = 'right'
   [../]
 []
@@ -975,7 +1111,7 @@ length = 0.
     line_search = 'default'
     petsc_options = '-snes_ksp_ew'
     petsc_options_iname = '-mat_fd_coloring_err  -mat_fd_type  -mat_mffd_type'
-    petsc_options_value = '1.e-12       ds             ds'
+    petsc_options_value = '1.e-10       ds             ds'
     #petsc_options = '-snes_mf_operator -ksp_converged_reason -ksp_monitor -snes_ksp_ew'
     #petsc_options_iname = '-pc_type'
     #petsc_options_value = 'lu'
@@ -1000,21 +1136,21 @@ length = 0.
   type = Transient   # Here we use the Transient Executioner
   scheme = 'bdf2'
   #num_steps = 10
-  end_time = 7e-5
+  end_time = 3.e-3
   dt = 1e-7
   dtmin = 1e-9
   l_tol = 1e-8
   nl_rel_tol = 1e-10
   nl_abs_tol = 1e-7
   l_max_its = 50
-  nl_max_its = 15
+  nl_max_its = 10
   [./TimeStepper]
     type = FunctionDT
-    time_t =  '0       1.e-7  7.e-5'
-    time_dt = '1.e-7  1.e-7  1.e-7'
+    time_t =  '0      1.e-4  7.e-4'
+    time_dt = '1.e-5  1.e-5  1.e-5'
   [../]
   [./Quadrature]
-    type = TRAP
+    type = GAUSS
     order = SECOND
   [../]
 []

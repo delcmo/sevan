@@ -5,6 +5,8 @@ template<>
 InputParameters validParams<InterfacialRelaxationTransfer>()
 {
   InputParameters params = validParams<Material>();
+    params.addParam<std::string>("inter_def_name", "BERRY", "Choose definition to compute interfacial variables.");
+    params.addParam<Real>("xi_ambrosso", 0.5, "value for definition of interfacial variables");
     // Boolean for mass and heat transfers:
     params.addParam<bool>("isMassOn", false, "are the mass transfer terms are on?");
     params.addParam<bool>("isHeatOn", false, "are the heat transfer terms are on?");
@@ -41,6 +43,10 @@ InputParameters validParams<InterfacialRelaxationTransfer>()
 
 InterfacialRelaxationTransfer::InterfacialRelaxationTransfer(const std::string & name, InputParameters parameters) :
     Material(name, parameters),
+    // Definition for interfacial variables:
+    _interf_def_name(getParam<std::string>("inter_def_name")),
+    _interf_def("BERRY, AMBROSSO, LIANG", _interf_def_name),
+    _xi(getParam<Real>("xi_ambrosso")),
     // Boolean for mass and heat transfers:
     _isMassOn(getParam<bool>("isMassOn")),
     _isHeatOn(getParam<bool>("isHeatOn")),
@@ -67,6 +73,7 @@ InterfacialRelaxationTransfer::InterfacialRelaxationTransfer(const std::string &
     _Aint(declareProperty<Real>("interfacial_area")),
     _PI(declareProperty<Real>("interfacial_pressure")),
     _velI(declareProperty<RealVectorValue>("interfacial_velocity")),
+    _velI_norm(declareProperty<Real>("interfacial_velocity_norm")),
     _PI_bar(declareProperty<Real>("average_interfacial_pressure")),
     _velI_bar(declareProperty<RealVectorValue>("average_interfacial_velocity")),
     _tempI(declareProperty<Real>("interfacial_temperature")),
@@ -112,55 +119,94 @@ InterfacialRelaxationTransfer::computeQpProperties()
     RealVectorValue _vel_l(_vel_x_l[_qp], _vel_y_l[_qp], _vel_z_l[_qp]);
     RealVectorValue _vel_g(_vel_x_g[_qp], _vel_y_g[_qp], _vel_z_g[_qp]);
 
-    /***************************************************/
-    /********** Compute interfacial variables: *********/
-    /***************************************************/
+    /*******************************************************************************/
+    /********** Compute interfacial variables and relaxation coefficients: *********/
+    /*******************************************************************************/
+    // Compute the speed of sound for each phase:
+    Real _c2_l = _eos_liq.c2_from_p_rho(_rho_l[_qp], _pressure_l[_qp]);
+    Real _c2_g = _eos_gas.c2_from_p_rho(_rho_g[_qp], _pressure_g[_qp]);
     
-    if (_Aint_max == 0) {
-        _PI_bar[_qp] = _pressure_l[_qp]; _velI_bar[_qp] = 0.;
-        _PI[_qp] = _pressure_l[_qp]; _velI[_qp] = 0.;
-        _Aint[_qp] = 0.; _P_rel[_qp] = 0.; _vel_rel[_qp] = 0.;
-    }
-    else {
-        // Compute the speed of sound for each phase:
-        Real _c2_l = _eos_liq.c2_from_p_rho(_rho_l[_qp], _pressure_l[_qp]);
-        Real _c2_g = _eos_gas.c2_from_p_rho(_rho_g[_qp], _pressure_g[_qp]);
-
-        // Compute the impedences for each phase:
-        Real _Z_l = _rho_l[_qp] * std::sqrt(_c2_l);
-        Real _Z_g = _rho_g[_qp] * std::sqrt(_c2_g);
-        Real _sum_Z = _Z_l + _Z_g;
-
-        // Compute unit vector based on gradient of liquid void fraction:
-        Real _eps = std::sqrt(std::numeric_limits<Real>::min());
-        RealVectorValue _n(_grad_alpha_l[_qp](0), _grad_alpha_l[_qp](1), _grad_alpha_l[_qp](2));
-        if ( _mesh.dimension() == 1 )
-        {
-            _n(0) = _grad_alpha_l[_qp](0) > 0 ? 1. : -1.;
-            _n(1) = 0.; _n(2) = 0.;
-        }
-        else
-        {
-            if (_n.size() <= 1e-8) {
-                _n(0) = 0.; _n(1) = 0.; _n(2) = 0.;
+    // Compute the impedences for each phase:
+    Real _Z_l = _rho_l[_qp] * std::sqrt(_c2_l);
+    Real _Z_g = _rho_g[_qp] * std::sqrt(_c2_g);
+    Real _sum_Z = _Z_l + _Z_g;
+    
+    // Compute the interfacial variables according to the definition chose in input file:
+    Real beta, mu, temp_l, temp_g;
+    switch (_interf_def)
+    {
+        case BERRY:
+            if (_Aint_max == 0)
+            {
+                // Compute the average interfacial and relaxation parameters:
+                _PI_bar[_qp] = ( _Z_g*_pressure_l[_qp] + _Z_l*_pressure_g[_qp] ) / _sum_Z;
+                _velI_bar[_qp] = ( _Z_l*_vel_l + _Z_g*_vel_g ) / _sum_Z;
+                
+                _PI[_qp] = _PI_bar[_qp];
+                _velI[_qp] = _velI_bar[_qp];
+                _Aint[_qp] = 0.; _P_rel[_qp] = 0.; _vel_rel[_qp] = 0.;
             }
-            else {
-                _n = _n / (_n.size() + _eps); }
-        }
-
-        // Compute the average interfacial Relaxation parameters:
-        _PI_bar[_qp] = ( _Z_g*_pressure_l[_qp] + _Z_l*_pressure_g[_qp] ) / _sum_Z;
-        _velI_bar[_qp] = ( _Z_l*_vel_l + _Z_g*_vel_g ) / _sum_Z;
-
-        // Compute interfacial Relaxation parameters:
-        _PI[_qp] = _PI_bar[_qp] + _Z_l*_Z_g/_sum_Z * _n*(_vel_g-_vel_l);
-        _velI[_qp] = _velI_bar[_qp] + _n * (_pressure_g[_qp]-_pressure_l[_qp])/_sum_Z;
-
-        // Compute the relaxation parameters:
-        _Aint[_qp] = _Aint_max*(6.75*(1-_alpha_l[_qp])*(1-_alpha_l[_qp])*_alpha_l[_qp]);
-        _P_rel[_qp] = _isPressRelOn ? _Aint[_qp]/_sum_Z : 0.; /*(mu)*/
-        _vel_rel[_qp] = _isVelRelOn ? 0.5*_Aint[_qp]*_Z_g*_Z_l/_sum_Z : 0.; /*(lambda)*/
+            else
+            {
+                // Compute unit vector based on gradient of liquid void fraction:
+                Real _eps = std::sqrt(std::numeric_limits<Real>::min());
+                RealVectorValue _n(_grad_alpha_l[_qp](0), _grad_alpha_l[_qp](1), _grad_alpha_l[_qp](2));
+                if ( _mesh.dimension() == 1 )
+                {
+                    _n(0) = _grad_alpha_l[_qp](0) > 0 ? 1. : -1.;
+                    _n(1) = 0.; _n(2) = 0.;
+                }
+                else
+                {
+                    if (_n.size() <= 1e-4) {
+                        _n(0) = 0.; _n(1) = 0.; _n(2) = 0.;
+                    }
+                    else {
+                        _n = _n / (_n.size() + _eps); }
+                }
+                
+                // Compute the average interfacial Relaxation parameters:
+                _PI_bar[_qp] = ( _Z_g*_pressure_l[_qp] + _Z_l*_pressure_g[_qp] ) / _sum_Z;
+                _velI_bar[_qp] = ( _Z_l*_vel_l + _Z_g*_vel_g ) / _sum_Z;
+                
+                // Compute interfacial Relaxation parameters:
+                _PI[_qp] = _PI_bar[_qp] + _Z_l*_Z_g/_sum_Z * _n*(_vel_g-_vel_l);
+                _velI[_qp] = _velI_bar[_qp] + _n * (_pressure_g[_qp]-_pressure_l[_qp])/_sum_Z;
+            }
+            break;
+        case AMBROSSO:
+            // Compute interfacial velocity:
+            beta = _xi*_alpha_l[_qp]*_rho_l[_qp];
+            beta *= 1./(_xi*_alpha_l[_qp]*_rho_l[_qp] + (1.-_xi)*(1.-_alpha_l[_qp])*_rho_g[_qp]);
+            _velI_bar[_qp] = beta*_vel_l + (1.-beta)*_vel_g;
+            _velI[_qp] = _velI_bar[_qp];
+            // Compute interfacial pressure:
+            temp_l = _eos_liq.temperature_from_p_rho(_pressure_l[_qp], _rho_l[_qp]);
+            temp_g = _eos_gas.temperature_from_p_rho(_pressure_g[_qp], _rho_g[_qp]);
+            mu = (1.-beta)*temp_g/(beta*temp_l+(1.-beta)*temp_g);
+            _PI_bar[_qp] = mu*_pressure_l[_qp] + (1.-mu)*_pressure_g[_qp];
+            _PI[_qp] = _PI_bar[_qp];
+            break;
+        case LIANG:
+            // Compute intefacial velocity:
+            _velI_bar[_qp] = _alpha_l[_qp]*_rho_l[_qp]*_vel_l + (1.-_alpha_l[_qp])*_rho_g[_qp]*_vel_g;
+            _velI_bar[_qp] *= 1./(_alpha_l[_qp]*_rho_l[_qp] + (1.-_alpha_l[_qp])*_rho_g[_qp]);
+            _velI[_qp] = _velI_bar[_qp];
+            // Compute interfacial pressure:
+            _PI_bar[_qp] = _alpha_l[_qp]*_pressure_l[_qp] + (1.-_alpha_l[_qp])*_pressure_g[_qp];
+            break;
+            
+        default:
+            break;
     }
+
+    // Compute the relaxation parameters:
+    _Aint[_qp] = _Aint_max;//*(6.75*(1-_alpha_l[_qp])*(1-_alpha_l[_qp])*_alpha_l[_qp]);
+    _P_rel[_qp] = _isPressRelOn ? _Aint[_qp]/_sum_Z : 0.; /*(mu)*/
+    _vel_rel[_qp] = _isVelRelOn ? 0.5*_Aint[_qp]*_Z_g*_Z_l/_sum_Z : 0.; /*(lambda)*/
+    
+    // Compute the norm of the interfacial velocity for output only
+    _velI_norm[_qp] = _velI[_qp].size();
 
     /***************************************************/
     /***** Newton solve for computing TI from PI: ******/

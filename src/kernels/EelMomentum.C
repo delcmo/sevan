@@ -80,7 +80,7 @@ Real EelMomentum::computeQpResidual()
     Real _sign = _isLiquid ? -1. : 1.;
 
     // Compute void fraction and its derivative of the phase (liquid or vapor):
-    Real _alpha = _isLiquid ? _alpha_liq[_qp] : 1.-_alpha_liq[_qp];
+    Real _alpha = _isLiquid ? _alpha_liq[_qp] : std::fabs(1.-_alpha_liq[_qp]);
     RealVectorValue _grad_alpha =_isLiquid ? _grad_alpha_liq[_qp] : -_grad_alpha_liq[_qp];
 
     // Velocity vectors: k->phase under consideration, 2->other phase.

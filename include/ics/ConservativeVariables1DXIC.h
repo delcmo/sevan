@@ -47,17 +47,27 @@ public:
   virtual Real value(const Point & p);
 
 private:
-    // Function are
+    // Type of ics
+    bool _isDensity;
+    // Function area
     Function & _area;
     // Initial conditions for left and right values:
-    Real _p_left;
-    Real _p_right;
-    Real _v_left;
-    Real _v_right;
+    Real _p_left_liq;
+    Real _p_right_liq;
+    Real _p_left_gas;
+    Real _p_right_gas;
+    Real _v_left_liq;
+    Real _v_right_liq;
+    Real _v_left_gas;
+    Real _v_right_gas;
     Real _t_left_liq;
     Real _t_right_liq;
     Real _t_left_gas;
     Real _t_right_gas;
+    Real _rho_left_liq;
+    Real _rho_right_liq;
+    Real _rho_left_gas;
+    Real _rho_right_gas;
     Real _alpha_left;
     Real _alpha_right;
     // Position of the membrane:

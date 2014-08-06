@@ -79,6 +79,37 @@ JumpGradientInterface::execute()
     dof_id_type dof_nb = 0.;
     dof_id_type dof_nb_neighbor = 0.;
 
+//    if (dof_nb_aux != 0)
+//    {
+//        _value = 0.;
+//        NumericVector<Number> & sln = _aux.solution();
+//        
+//        // Compute the jump of the given variable:(grad(f_i) - grad(f_ip1))*_normals
+//        for (unsigned int qp = 0; qp < _q_point.size(); ++qp)
+//            _value = std::max(std::fabs(_grad_u[qp]*_normals[qp] - _grad_u_neighbor[qp]*_normals[qp]), _value);
+//        
+//        dof_nb = _current_elem->dof_number(_aux.number(), _fe_problem.getVariable(_tid, _jump_name).number(), 0);
+//        dof_nb_neighbor = _neighbor_elem->dof_number(_aux.number(), _fe_problem.getVariable(_tid, _jump_name).number(), 0);
+//        
+//        // Set the value:
+//        if (_current_elem->on_boundary()) // the side is on the boundary
+//        {
+//            sln.add(dof_nb, 2*_value*_weight_elem);
+//            sln.add(dof_nb_neighbor, _value*_weight_nghb_elem);
+//        }
+//        else if (_neighbor_elem->on_boundary()) // the side is on the boundary
+//        {
+//            sln.add(dof_nb, _value*_weight_elem);
+//            sln.add(dof_nb_neighbor, 2*_value*_weight_nghb_elem);
+//        }
+//        else
+//        {
+//            sln.add(dof_nb, _value*_weight_elem);
+//            sln.add(dof_nb_neighbor, _value*_weight_nghb_elem);
+//        }
+//    }
+    
+    // Do the job only if the coupled variable 'variable' is defined on the nodes:
     if (dof_nb_aux != 0)
     {
         _value = 0.;
@@ -92,21 +123,8 @@ JumpGradientInterface::execute()
         dof_nb_neighbor = _neighbor_elem->dof_number(_aux.number(), _fe_problem.getVariable(_tid, _jump_name).number(), 0);
         
         // Set the value:
-        if (_current_elem->on_boundary()) // the side is on the boundary
-        {
-            sln.add(dof_nb, 2*_value*_weight_elem);
-            sln.add(dof_nb_neighbor, _value*_weight_nghb_elem);
-        }
-        else if (_neighbor_elem->on_boundary()) // the side is on the boundary
-        {
-            sln.add(dof_nb, _value*_weight_elem);
-            sln.add(dof_nb_neighbor, 2*_value*_weight_nghb_elem);
-        }
-        else
-        {
-            sln.add(dof_nb, _value*_weight_elem);
-            sln.add(dof_nb_neighbor, _value*_weight_nghb_elem);
-        }
+        sln.add(dof_nb, _value*_weight_elem);
+        sln.add(dof_nb_neighbor, _value*_weight_nghb_elem);
     }
 }
 

@@ -31,6 +31,7 @@
 #include "EelWallBC.h"
 #include "EelHRhoUBC.h"
 #include "MassInflow.h"
+#include "EelDirichletBC.h"
 // ICs
 #include "ConservativeVariables1DXIC.h"
 #include "ConservativeVariables1DYIC.h"
@@ -112,6 +113,7 @@ SevanApp::registerObjects(Factory & factory)
     registerBoundaryCondition(EelWallBC);
     registerBoundaryCondition(EelHRhoUBC);
     registerBoundaryCondition(MassInflow);
+    registerBoundaryCondition(EelDirichletBC);
     // ICs
     registerInitialCondition(ConservativeVariables1DXIC);
     registerInitialCondition(ConservativeVariables1DYIC);

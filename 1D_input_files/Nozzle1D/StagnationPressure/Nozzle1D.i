@@ -9,16 +9,14 @@ order = FIRST
 viscosity_name = ENTROPY
 diffusion_name = ENTROPY
 Ce = 1.
-Cjump = 5.
+Cjump_liquid = 1.
+Cjump_gas = 5.
 Calpha = 1.
 ###### Mass and heat transfer ######
 isJumpOn = false
 isMassOn = false
 isHeatOn = false
-isVariableArea = true
-#isVelRelOn = false
-#isPressRelOn = false
-#useLiqViscForVF = true
+isShock = false
 Aint = 0.
 
 ###### Boundary Conditions ######
@@ -137,7 +135,7 @@ length = 1.
 [Mesh]
   type = GeneratedMesh
   dim = 1
-  nx = 100
+  nx = 300
   xmin = 0
   xmax = 1
   block_id = '0'
@@ -984,11 +982,7 @@ length = 1.
     area = area_aux
     norm_velocity = norm_velocity_aux_l
     eos = eos_liq
-    DpressDt_PPS_name = MaxDpressureDtLiq
     rhov2_PPS_name = AverageRhov2Liq
-#    rhocv_PPS_name = AverageRhocvelLiq
-    rhoc2_PPS_name = AverageRhoc2Liq
-#    press_PPS_name = AveragePressureLiq
     alpha_PPS_name = AverageAlphaLiq
   [../]
 
@@ -1005,11 +999,7 @@ length = 1.
     area = area_aux
     norm_velocity = norm_velocity_aux_g
     eos = eos_gas
-    DpressDt_PPS_name = MaxDpressureDtGas
     rhov2_PPS_name = AverageRhov2Gas
-#    rhocv_PPS_name = AverageRhocvelGas
-    rhoc2_PPS_name = AverageRhoc2Gas
-#    press_PPS_name = AveragePressureGas
     alpha_PPS_name = AverageAlphaLiq
     isLiquid = false
   [../]
@@ -1035,35 +1025,11 @@ length = 1.
 # Define functions that are used in the kernels and aux. kernels.                            #
 ##############################################################################################
 [Postprocessors]
-#  [./AveragePressureLiq]
-#    type = ElementAverageAbsValue
-#    variable = pressure_aux_l
-#    #execute_on = timestep_begin
-#  [../]
-
-#  [./AveragePressureGas]
-#    type = ElementAverageAbsValue
-#    variable = pressure_aux_g
-#    #execute_on = timestep_begin
-#  [../]
-
   [./AverageAlphaLiq]
     type = ElementAverageValue # NodalMaxValue
     variable = alpha_aux_l
     #execute_on = timestep_begin
   [../]
-  
-#  [./MaxDpressureDtLiq]
-#    type = ElementMaxDuDtValue
-#    variable = pressure_aux_l
-#    variable2 = mach_number_aux_l
-#  [../]
-  
-#  [./MaxDpressureDtGas]
-#    type = ElementMaxDuDtValue
-#    variable = pressure_aux_g
-#   variable2 = mach_number_aux_g
-#  [../]
 
   [./AverageRhov2Liq]
     type = ElementAverageMultipleValues
@@ -1081,56 +1047,6 @@ length = 1.
     type = ElementAverageMultipleValues
     variable = norm_velocity_aux_g
     output_type = RHOVEL2
-    alA = alA_l
-    alrhoA = alrhoA_g
-    alrhouA_x = alrhouA_g
-    alrhoEA = alrhoEA_g
-    eos = eos_gas
-    area = area_aux
-    isLiquid = false
-  [../]
-
-#  [./AverageRhocvelLiq]
-#    type = ElementAverageMultipleValues
-#    variable = norm_velocity_aux_g
-#    output_type = RHOCVEL
-#    alA = alA_l
-#    alrhoA = alrhoA_l
-#    alrhouA_x = alrhouA_l
-#    alrhoEA = alrhoEA_l
-#    eos = eos_liq
-#    area = area_aux
-#  [../]
-
-#  [./AverageRhocvelGas]
-#    type = ElementAverageMultipleValues
-#    variable = norm_velocity_aux_g
-#    output_type = RHOCVEL
-#    alA = alA_l
-#    alrhoA = alrhoA_g
-#    alrhouA_x = alrhouA_g
-#    alrhoEA = alrhoEA_g
-#    eos = eos_gas
-#    area = area_aux
-#    isLiquid = false
-#  [../]
-
-  [./AverageRhoc2Liq]
-    type = ElementAverageMultipleValues
-    variable = norm_velocity_aux_g
-    output_type = RHOC2
-    alA = alA_l
-    alrhoA = alrhoA_l
-    alrhouA_x = alrhouA_l
-    alrhoEA = alrhoEA_l
-    eos = eos_liq
-    area = area_aux
-  [../]
-
-  [./AverageRhoc2Gas]
-    type = ElementAverageMultipleValues
-    variable = norm_velocity_aux_g
-    output_type = RHOC2
     alA = alA_l
     alrhoA = alrhoA_g
     alrhouA_x = alrhouA_g

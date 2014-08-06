@@ -100,7 +100,7 @@ Real EelArtificialVisc::computeQpResidual()
 
         // Symmetric gradient of velocity:
         TensorValue<Real> _grad_vel_tensor(_grad_vel_x[_qp], _grad_vel_y[_qp], _grad_vel_z[_qp]);
-        TensorValue<Real> _grad_vel_tensor_sym = ( _grad_vel_tensor + _grad_vel_tensor.transpose() ) * 0.5 * _rho[_qp] * mu;
+        TensorValue<Real> _grad_vel_tensor_sym = ( _grad_vel_tensor + _grad_vel_tensor.transpose() ) * 0.5 * _rho[_qp] * mu * alpha;
 
         // Compute l = beta * grad(alpha):
         RealVectorValue l_k = grad_alpha;
