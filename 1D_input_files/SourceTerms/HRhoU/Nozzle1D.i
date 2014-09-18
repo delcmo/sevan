@@ -17,37 +17,41 @@ isMassOn = true
 isHeatOn = true
 isVariableArea = false
 isWallFrictOn = true
-isWallHeatOn = true
+isWallHeatOn = false
 isVelRelOn = true
 isPressRelOn = true
 #useLiqViscForVF = true
-Aint = 1.e2
+Aint = 1.e3
 
 ###### Boundary Conditions ######
+rhou_liquid = 1617.420320
+H_liquid    = 9.98407237e5
 rhou_vapor = 52.88396082
-H_vapor = 2784615.991053
-rhou_liquid = 1617.42032
-H_liquid = 998407.237
-p_bc = 6.e6
+H_vapor    = 2784615.991053
+#rhou_vapor = 82.725551539926 # 52.88396082
+#H_vapor = 8135096.19294906 # 2784615.991053
+#rhou_liquid = 2140.785503 # 1617.42032
+#H_liquid = 9668914.49 # 998407.237
+p_bc = 7e6
 T_bc = 507.40585735132549
-alpha_bc = 0.999
+alpha_bc = 0.5
 wall_frict_liq_value = 0.1
 wall_frict_gas_value = 0.1
-wall_heat_liq_value = 2.e3
-wall_heat_gas_value = 0. # 2.e2 # 1.e3
-Twall = 600. # 650. # 800.
+wall_heat_liq_value = 0. # 2.e3
+wall_heat_gas_value = 0. # 2.e1
+Twall = 550.
 
 ###### Initial Conditions #######
-pressure_init_left = 6.e6
-pressure_init_right = 6.e6
+pressure_init_left = 7.e6
+pressure_init_right = 7.e6
 vel_init_left = 2.
 vel_init_right = 2.
 temp_init_left = 507.40585735132549
 temp_init_right = 507.40585735132549
-alpha_init_left = 0.999
-alpha_init_right = 0.999
+alpha_init_left = 0.5
+alpha_init_right = 0.5
 membrane = 0.5
-length = 1.
+length = 3.88
 []
 
 #############################################################################
@@ -115,7 +119,7 @@ length = 1.
 [Mesh]
   type = GeneratedMesh
   dim = 1
-  nx = 50
+  nx = 100
   xmin = 0
   xmax = 3.88
   block_id = '0'
@@ -1053,7 +1057,7 @@ length = 1.
   [./VoidFractionLeftLiq]
     type = DirichletBC
     variable = alA_l
-    value = 9.99e-5
+    value = 5.e-5
     boundary = 'left'
   [../]
 ######## Liquid phase ########
@@ -1264,10 +1268,10 @@ length = 1.
     type = FunctionDT
 #    time_t =  '0.      2.e-4    1.e-2   2.e-2   0.56'
 #    time_dt = '1.e-5   1.e-4    1.e-4   1.e-3   1.e-3'
-    time_t =  '0.      1.      2.'
-    time_dt = '1.e-3   1.e-1   1.e-1'
-#    time_t =  '0.      1.e-2    3.e-2   1.e-1   0.56'
-#    time_dt = '1.e-2   1.e-3    1.e-3   1.e-3   1.e-3'
+#    time_t =  '0.      1.      2.'
+#    time_dt = '1.e-3   1.e-1   1.e-1'
+    time_t =  '0.      1.e-3    3.e-2   1.e-1   0.56'
+    time_dt = '1.e-3   1.e-1    1.e-1   1.e-1   1.e-1'
   [../]
   [./Quadrature]
     type = GAUSS

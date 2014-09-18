@@ -31,6 +31,9 @@ InputParameters validParams<ComputeViscCoeff>()
     params.addParam<double>("Cjump_liquid", 1., "Coefficient for jump for liquid phase");
     params.addParam<double>("Cjump_gas", 1., "Coefficient for jump for gas phase");
     params.addParam<double>("Calpha", 1., "Coefficient for alpha");
+    // Coefficients for 'sigma' function:
+    params.addParam<Real>("a_coeff", 4., "Coefficient for sigma function");
+    params.addParam<Real>("Mthres", 0.005, "Threshold Mach number");
     // Userobject:
     params.addRequiredParam<UserObjectName>("eos", "Equation of state");
     // PPS names:
@@ -95,6 +98,9 @@ ComputeViscCoeff::ComputeViscCoeff(const std::string & name, InputParameters par
     _Ce(getParam<double>("Ce")),
     _Cjump(_isLiquid ? getParam<double>("Cjump_liquid") : getParam<double>("Cjump_gas")),
     _Calpha(getParam<double>("Calpha")),
+    // Coefficients for 'sigma' function:
+    _a_coeff(getParam<Real>("a_coeff")),
+    _Mthres(getParam<Real>("Mthres")),
     // UserObject:
     _eos(getUserObject<EquationOfState>("eos")),
     // PPS name:
@@ -155,7 +161,7 @@ ComputeViscCoeff::computeQpProperties()
 //    h = _current_elem->hmin()/_qrule->get_order();
     Real weight0, weight1, weight2;
     Real mu_e, kappa_e, beta_e;
-    Real jump, residual, norm;
+    Real jump, residual, norm, sigma;
     
     // Switch statement over viscosity type:
     switch (_visc_type) {
@@ -205,9 +211,10 @@ ComputeViscCoeff::computeQpProperties()
                 jump = _Calpha*std::fabs(_velI[_qp].size()*_jump_grad_alpha[_qp]);
             else
                 jump = _Calpha*std::fabs(_velI[_qp].size()*_grad_alpha_l[_qp](0));
-            norm = std::min(_alpha_l[_qp], std::fabs(1.-_alpha_l[_qp]));
+//            norm = std::min(_alpha_l[_qp], std::fabs(1.-_alpha_l[_qp]));
+            norm = alpha_var;
             beta_e = h*h*(std::fabs(residual)+jump) / norm;
-            beta_e += h*h*std::fabs(vel*_grad_area[_qp])/_area[_qp];
+//            beta_e += h*h*std::fabs(vel*_grad_area[_qp])/_area[_qp];
             
         /** Compute viscosity coefficient for continuity, momentum and energy equations: **/
             // Entropy residual:
@@ -244,7 +251,7 @@ ComputeViscCoeff::computeQpProperties()
                 kappa_e = h*h*(std::fabs(residual) + jump) / norm;
                 kappa_e += h*h*_pressure[_qp] * std::fabs(vel * _grad_area[_qp]) / ( _area[_qp] * norm );
             }
-            else // isentropic flow.
+            else // with function sigma.
             {
                 // Compute the jumps:
                 if (_isJumpOn)
@@ -252,12 +259,26 @@ ComputeViscCoeff::computeQpProperties()
                 else
                     jump = _Cjump*vel.size()*std::max( _grad_press[_qp].size(), c*c*_grad_rho[_qp].size() );
                 
-                // Compute high-order viscosity coefficients:
-                norm = 0.5*( std::fabs(1.-Mach)*_rho[_qp]*c*c + Mach*_rho[_qp]*vel.size_sq() );
-                kappa_e = h*h*std::max(std::fabs(residual), jump) / norm;
-//                kappa_e += h*h*_pressure[_qp] * std::fabs(vel * _grad_area[_qp]) / ( _area[_qp] * norm );
-                kappa_e += h*h*std::fabs(vel*_grad_area[_qp])/_area[_qp];
-                mu_e = kappa_e;
+                // Compute the function sigma:
+                sigma = 0.5 * std::tanh(_a_coeff*(Mach-_Mthres));
+                sigma += 0.5 * std::abs(std::tanh(_a_coeff*(Mach-_Mthres)));
+                
+                // Compute mu_e:
+                norm = (1.-sigma) * _rho[_qp] * c * c;
+                norm += sigma * _rho[_qp] * vel.size_sq();
+                norm *= 0.5;
+                mu_e = h*h*(std::fabs(residual) + jump) / norm;
+                
+                // Compute kappa_e:
+                norm = 0.5 * _rho[_qp] * c * c;
+                kappa_e = h*h*(std::fabs(residual) + jump) / norm;
+                
+//                // Compute high-order viscosity coefficients:
+//                norm = 0.5*( std::fabs(1.-Mach)*_rho[_qp]*c*c + Mach*_rho[_qp]*vel.size_sq() );
+//                kappa_e = h*h*std::max(std::fabs(residual), jump) / norm;
+////                kappa_e += h*h*_pressure[_qp] * std::fabs(vel * _grad_area[_qp]) / ( _area[_qp] * norm );
+//                kappa_e += h*h*std::fabs(vel*_grad_area[_qp])/_area[_qp];
+//                mu_e = kappa_e;
             }
             
         /** Compute the viscosity coefficients: **/

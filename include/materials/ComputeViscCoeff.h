@@ -106,6 +106,10 @@ private:
     double _Cjump;
     double _Calpha;
     
+    // Coefficients for 'sigma' function:
+    Real _a_coeff;
+    Real _Mthres;
+    
     // UserObject: equation of state
     const EquationOfState & _eos;
     

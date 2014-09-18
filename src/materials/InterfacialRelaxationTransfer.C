@@ -133,38 +133,41 @@ InterfacialRelaxationTransfer::computeQpProperties()
     
     // Compute the interfacial variables according to the definition chose in input file:
     Real beta, mu, temp_l, temp_g;
+    RealVectorValue _n(_grad_alpha_l[_qp](0), _grad_alpha_l[_qp](1), _grad_alpha_l[_qp](2));
     switch (_interf_def)
     {
         case BERRY:
+            // Compute unit vector based on gradient of liquid void fraction:
+            if ( _mesh.dimension() == 1 )
+            {
+                _n(0) = _grad_alpha_l[_qp](0) >= 0 ? 1. : -1.;
+                _n(1) = 0.; _n(2) = 0.;
+            }
+            else
+            {
+                Real _eps = std::sqrt(std::numeric_limits<Real>::min());
+                if (_n.size() <= 1e-4) {
+                    _n(0) = 0.; _n(1) = 0.; _n(2) = 0.;
+                }
+                else {
+                    _n = _n / (_n.size() + _eps); }
+            }
+            
             if (_Aint_max == 0)
             {
                 // Compute the average interfacial and relaxation parameters:
                 _PI_bar[_qp] = ( _Z_g*_pressure_l[_qp] + _Z_l*_pressure_g[_qp] ) / _sum_Z;
                 _velI_bar[_qp] = ( _Z_l*_vel_l + _Z_g*_vel_g ) / _sum_Z;
                 
-                _PI[_qp] = _PI_bar[_qp];
+                // Compute interfacial Relaxation parameters:
+                _PI[_qp] = _PI_bar[_qp] + _Z_l*_Z_g/_sum_Z * _n*(_vel_g-_vel_l);
+                _velI[_qp] = _velI_bar[_qp] + _n * (_pressure_g[_qp]-_pressure_l[_qp])/_sum_Z;
+                
                 _velI[_qp] = _velI_bar[_qp];
                 _Aint[_qp] = 0.; _P_rel[_qp] = 0.; _vel_rel[_qp] = 0.;
             }
             else
             {
-                // Compute unit vector based on gradient of liquid void fraction:
-                Real _eps = std::sqrt(std::numeric_limits<Real>::min());
-                RealVectorValue _n(_grad_alpha_l[_qp](0), _grad_alpha_l[_qp](1), _grad_alpha_l[_qp](2));
-                if ( _mesh.dimension() == 1 )
-                {
-                    _n(0) = _grad_alpha_l[_qp](0) > 0 ? 1. : -1.;
-                    _n(1) = 0.; _n(2) = 0.;
-                }
-                else
-                {
-                    if (_n.size() <= 1e-4) {
-                        _n(0) = 0.; _n(1) = 0.; _n(2) = 0.;
-                    }
-                    else {
-                        _n = _n / (_n.size() + _eps); }
-                }
-                
                 // Compute the average interfacial Relaxation parameters:
                 _PI_bar[_qp] = ( _Z_g*_pressure_l[_qp] + _Z_l*_pressure_g[_qp] ) / _sum_Z;
                 _velI_bar[_qp] = ( _Z_l*_vel_l + _Z_g*_vel_g ) / _sum_Z;

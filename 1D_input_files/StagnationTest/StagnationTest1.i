@@ -8,33 +8,30 @@
 order = FIRST
 viscosity_name = ENTROPY
 diffusion_name = ENTROPY
-Ce = 1
+Ce = 1.
+Cjump_liquid = 5.
+Cjump_gas = 5.
+Calpha = 1.
 
 ###### Mass and heat transfer ######
+isJumpOn = false
 isMassOn = false
 isHeatOn = false
-
-###### Boundary Conditions ######
-p0_bc = 1.e6
-T0_bc = 453.
-gamma0_bc = 0.
-alpha0_bc = 0.5
-p_bc = 0.5e6
-T_bc = 453.
-gamma_bc = 0.
-alpha_bc = 0.5
+isShock = false
+Aint = 0.
+gravity = '9.8, 0.0, 0.0'
 
 ###### Initial Conditions #######
-pressure_init_left = 1e6
-pressure_init_right = 0.5e6
-vel_init_left = 0
-vel_init_right = 0
-temp_init_left = 453.
-temp_init_right = 453.
+pressure_init_left = 1.e6
+pressure_init_right = 1.e6
+vel_init_left = 0.
+vel_init_right = 0.
+temp_init_left = 300.
+temp_init_right = 300.
 alpha_init_left = 0.5
 alpha_init_right = 0.5
 membrane = 0.5
-length = 1.
+length = 0.
 []
 
 #############################################################################
@@ -145,7 +142,7 @@ length = 1.
 [Functions]
   [./area]
     type = ParsedFunction
-    value = (1+0.5*cos(2*pi*x))
+    value = 1.
   [../]
 []
 
@@ -179,15 +176,16 @@ length = 1.
   [./alrhouA_l]
     family = LAGRANGE
     scaling = 1e-4
-	[./InitialCondition]
-        type = ConstantIC
-        value = 0.
-	[../]
+    [./InitialCondition]
+        type = ConservativeVariables1DXIC
+        area = area
+        eos = eos_liq
+    [../]
   [../]
 
   [./alrhoEA_l]
     family = LAGRANGE
-    scaling = 1e-7
+    scaling = 1e-4
 	[./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -211,14 +209,16 @@ length = 1.
     family = LAGRANGE
     scaling = 1e-4
     [./InitialCondition]
-        type = ConstantIC
-        value = 0.
+        type = ConservativeVariables1DXIC
+        area = area
+        eos = eos_gas
+        isLiquid = false
     [../]
   [../]
 
   [./alrhoEA_g]
     family = LAGRANGE
-    scaling = 1e-7
+    scaling = 1e-4
     [./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -275,6 +275,7 @@ length = 1.
   [./MomConvLiq]
     type = EelMomentum
     variable = alrhouA_l
+    alrhoA = alrhoA_l
     vel_x = velocity_x_aux_l
     vel_x_2 = velocity_x_aux_g
     pressure = pressure_aux_l
@@ -374,6 +375,7 @@ length = 1.
   [./MomConvGas]
     type = EelMomentum
     variable = alrhouA_g
+    alrhoA = alrhoA_g
     vel_x = velocity_x_aux_g
     vel_x_2 = velocity_x_aux_l
     pressure = pressure_aux_g
@@ -542,6 +544,10 @@ length = 1.
       family = LAGRANGE
    [../]
 
+  [./mach_number_aux_l]
+    family = LAGRANGE
+  [../]
+
    [./temperature_aux_l]
     family = LAGRANGE
    [../]
@@ -609,6 +615,10 @@ length = 1.
   [../]
 
   [./pressure_aux_g]
+    family = LAGRANGE
+  [../]
+
+  [./mach_number_aux_g]
     family = LAGRANGE
   [../]
 
@@ -791,6 +801,17 @@ length = 1.
     area = area_aux
     eos = eos_liq
   [../]
+  
+  [./MachNumAKLiq]
+    type = MachNumberAux
+    variable = mach_number_aux_l
+    alrhoA = alrhoA_l
+    alrhouA_x = alrhouA_l
+    vf_liquid = alpha_aux_l
+    area = area_aux
+    pressure = pressure_aux_l
+    eos = eos_liq
+  [../]
 
   [./TempAKLiq]
     type = TemperatureAux
@@ -881,6 +902,18 @@ length = 1.
     isLiquid = false
   [../]
 
+  [./MachNumAKGas]
+    type = MachNumberAux
+    variable = mach_number_aux_g
+    alrhoA = alrhoA_g
+    alrhouA_x = alrhouA_g
+    vf_liquid = alpha_aux_l
+    area = area_aux
+    pressure = pressure_aux_g
+    eos = eos_gas
+    isLiquid = false
+  [../]
+
   [./TempAKGas]
     type = TemperatureAux
     variable = temperature_aux_g
@@ -939,9 +972,10 @@ length = 1.
     jump_grad_dens = smooth_jump_grad_dens_aux_l
     jump_grad_alpha = jump_grad_alpha_aux_l
     vf_liquid = alpha_aux_l
-    norm_velocity = norm_velocity_aux_l
+    area = area_aux
     eos = eos_liq
-    velocity_PPS_name = MaxVelocityLiq
+    rhov2_PPS_name = AverageRhov2Liq
+    alpha_PPS_name = AverageAlphaLiq
   [../]
 
   [./ViscCoeffGas]
@@ -950,19 +984,19 @@ length = 1.
     velocity_x = velocity_x_aux_g
     pressure = pressure_aux_g
     density = density_aux_g
-    #jump_grad_press = smooth_jump_grad_press_aux_g
+    jump_grad_press = smooth_jump_grad_press_aux_g
     jump_grad_dens = smooth_jump_grad_dens_aux_g
     vf_liquid = alpha_aux_l
-    norm_velocity = norm_velocity_aux_g
+    area = area_aux
     eos = eos_gas
-    velocity_PPS_name = MaxVelocityGas
+    rhov2_PPS_name = AverageRhov2Gas
+    alpha_PPS_name = AverageAlphaLiq
     isLiquid = false
   [../]
 
   [./InterfacialRelaxationTransfer]
     type = InterfacialRelaxationTransfer
     block = '0'
-    Aint = 20000.
     velocity_x_liq = velocity_x_aux_l
     pressure_liq = pressure_aux_l
     density_liq = density_aux_l
@@ -981,22 +1015,35 @@ length = 1.
 # Define functions that are used in the kernels and aux. kernels.                            #
 ##############################################################################################
 [Postprocessors]
-#  [./AverageAlphaLiq]
-#    type = ElementAverageValue
-#    variable = alpha_aux_l
-#    #execute_on = timestep_begin
-#  [../]
-
-  [./MaxVelocityLiq]
+  [./AverageAlphaLiq]
     type = ElementAverageValue # NodalMaxValue
-    variable = norm_velocity_aux_l
+    variable = alpha_aux_l
     #execute_on = timestep_begin
   [../]
 
-  [./MaxVelocityGas]
-    type = ElementAverageValue # NodalMaxValue
+  [./AverageRhov2Liq]
+    type = ElementAverageMultipleValues
     variable = norm_velocity_aux_g
-    #execute_on = timestep_begin
+    output_type = RHOVEL2
+    alA = alA_l
+    alrhoA = alrhoA_l
+    alrhouA_x = alrhouA_l
+    alrhoEA = alrhoEA_l
+    eos = eos_liq
+    area = area_aux
+  [../]
+
+  [./AverageRhov2Gas]
+    type = ElementAverageMultipleValues
+    variable = norm_velocity_aux_g
+    output_type = RHOVEL2
+    alA = alA_l
+    alrhoA = alrhoA_g
+    alrhouA_x = alrhouA_g
+    alrhoEA = alrhoEA_g
+    eos = eos_gas
+    area = area_aux
+    isLiquid = false
   [../]
 []
 
@@ -1006,159 +1053,69 @@ length = 1.
 # Define the functions computing the inflow and outflow boundary conditions.                 #
 ##############################################################################################
 [BCs]
-######## Void fraction #######
-  [./VoidFractionLeftLiq]
-    type = DirichletBC
-    variable = alA_l
-    value = 0.75
-    boundary = 'left'
-  [../]
 ######## Liquid phase ########
   [./MassLeftLiq]
-    type = EelStagnationPandTBC
+    type = EelWallBC
     variable = alrhoA_l
     equation_name = CONTINUITY
-    alrhoA = alrhoA_l
-    alrhouA_n = alrhouA_l
-    area = area_aux
-    eos = eos_liq
-    boundary = 'left'
-  [../]
-
-  [./MassRightLiq]
-    type = EelStaticPandTBC
-    variable = alrhoA_l
-    equation_name = CONTINUITY
-    vel_x = velocity_x_aux_l
-    area = area_aux
-    temperature = temperature_aux_l
+    pressure = pressure_aux_l
     vf_liquid = alpha_aux_l
-    eos = eos_liq
-    boundary = 'right'
+    area = area_aux
+    boundary = 'left right'
   [../]
 
   [./MomLeftLiq]
-    type = EelStagnationPandTBC
+    type = EelWallBC
     variable = alrhouA_l
     equation_name = XMOMENTUM
-    alrhoA = alrhoA_l
-    alrhouA_n = alrhouA_l
-    area = area_aux
-    eos = eos_liq
-    boundary = 'left'
-  [../]
-
-  [./MomRightLiq]
-    type = EelStaticPandTBC
-    variable = alrhouA_l
-    equation_name = XMOMENTUM
-    vel_x = velocity_x_aux_l
-    area = area_aux
-    temperature = temperature_aux_l
+    pressure = pressure_aux_l
     vf_liquid = alpha_aux_l
-    eos = eos_liq
-    boundary = 'right'
+    area = area_aux
+    boundary = 'left right'
   [../]
 
   [./EnergyLeftLiq]
-    type = EelStagnationPandTBC
+    type = EelWallBC
     variable = alrhoEA_l
     equation_name = ENERGY
-    alrhoA = alrhoA_l
-    alrhouA_n = alrhouA_l
-    area = area_aux
-    eos = eos_liq
-    boundary = 'left'
-  [../]
-
-  [./EnergyRightLiq]
-    type = EelStaticPandTBC
-    variable = alrhoEA_l
-    equation_name = ENERGY
-    vel_x = velocity_x_aux_l
-    area = area_aux
-    temperature = temperature_aux_l
+    pressure = pressure_aux_l
     vf_liquid = alpha_aux_l
-    eos = eos_liq
-    boundary = 'right'
+    area = area_aux
+    boundary = 'left right'
   [../]
 
 ######## Gas phase ########
   [./MassLeftGas]
-    type = EelStagnationPandTBC
+    type = EelWallBC
     variable = alrhoA_g
     equation_name = CONTINUITY
-    alrhoA = alrhoA_g
-    alrhouA_n = alrhouA_g
-    area = area_aux
-    eos = eos_gas
-    isLiquid = false
-    #value = 1.5
-    boundary = 'left'
-  [../]
-
-  [./MassRightGas]
-    type = EelStaticPandTBC
-    variable = alrhoA_g
-    equation_name = CONTINUITY
-    vel_x = velocity_x_aux_g
-    area = area_aux
-    temperature = temperature_aux_g
+    pressure = pressure_aux_g
     vf_liquid = alpha_aux_l
-    eos = eos_gas
+    area = area_aux
     isLiquid = false
-    boundary = 'right'
+    boundary = 'left right'
   [../]
 
   [./MomLeftGas]
-    type = EelStagnationPandTBC
+    type = EelWallBC
     variable = alrhouA_g
     equation_name = XMOMENTUM
-    alrhoA = alrhoA_g
-    alrhouA_n = alrhouA_g
-    area = area_aux
-    eos = eos_gas
-    isLiquid = false
-    #value = 0
-    boundary = 'left'
-  [../]
-
-  [./MomRightGas]
-    type = EelStaticPandTBC
-    variable = alrhouA_g
-    equation_name = XMOMENTUM
-    vel_x = velocity_x_aux_g
-    area = area_aux
-    temperature = temperature_aux_g
+    pressure = pressure_aux_g
     vf_liquid = alpha_aux_l
-    eos = eos_gas
+    area = area_aux
     isLiquid = false
-    boundary = 'right'
+    boundary = 'left right'
   [../]
 
   [./EnergyLeftGas]
-    type = EelStagnationPandTBC
+    type = EelWallBC
     variable = alrhoEA_g
     equation_name = ENERGY
-    alrhoA = alrhoA_g
-    alrhouA_n = alrhouA_g
-    area = area_aux
-    eos = eos_gas
-    isLiquid = false
-    boundary = 'left'
-  [../]
-
-  [./EnergyRightGas]
-    type = EelStaticPandTBC
-    variable = alrhoEA_g
-    equation_name = ENERGY
-    vel_x = velocity_x_aux_g
-    area = area_aux
-    temperature = temperature_aux_g
+    pressure = pressure_aux_g
     vf_liquid = alpha_aux_l
-    eos = eos_gas
+    area = area_aux
     isLiquid = false
-    boundary = 'right'
+    boundary = 'left right'
   [../]
 []
 
@@ -1175,8 +1132,8 @@ length = 1.
     full = true
     solve_type = 'PJFNK'
     petsc_options_iname = '-mat_fd_coloring_err  -mat_fd_type  -mat_mffd_type'
-    petsc_options_value = '1.e-12       ds             ds'
-#line_search = 'none'
+    petsc_options_value = '1.e-10       ds             ds'
+    line_search = 'default'
   [../]
 
   [./SMP]
@@ -1196,23 +1153,27 @@ length = 1.
 [Executioner]
   type = Transient
   scheme = 'bdf2'
-  #num_steps = 10
-  end_time = 0.20
-  #dt = 1.e-4
+  num_steps = 100
+  end_time = 1.
+  dt = 1.e-2
   dtmin = 1e-9
   l_tol = 1e-8
-  nl_rel_tol = 1e-7
-  nl_abs_tol = 1e-6
+  nl_rel_tol = 1e-10
+  nl_abs_tol = 1e-7
   l_max_its = 50
-  nl_max_its = 15
+  nl_max_its = 10
 [./TimeStepper]
     type = FunctionDT
-    time_t =  '0.      1.e-5   0.56'
-    time_dt = '1.e-5   1.e-3   1.e-3'
+#    time_t =  '0.      2.e-4    1.e-2   2.e-2   0.56'
+#    time_dt = '1.e-5   1.e-4    1.e-4   1.e-3   1.e-3'
+#    time_t =  '0.      1.e-2    2.e-2   4.e-2   0.56'
+#    time_dt = '1.e-4   1.e-4    1.e-3   1.e-2   1.e-2'
+    time_t =  '0.      1.e-4    3.e-2   1.e-1   0.56'
+    time_dt = '1.e-4   1.e-2    1.e-2   1.e-2   1.e-2'
   [../]
   [./Quadrature]
-    type = TRAP
-    #order = FIFTH
+    type = GAUSS
+    order = SECOND
   [../]
 []
 
@@ -1222,13 +1183,11 @@ length = 1.
 # Define the functions computing the inflow and outflow boundary conditions.                 #
 ##############################################################################################
 
-[Output]
-#  file_base = Nozzle1DIntOn_nel100_mu1_out
+[Outputs]
   output_initial = true
-  interval = 20
+  interval = 1
+  console = true
   exodus = true
-  postprocessor_screen = false
-  perf_log = true
 []
 
 ##############################################################################################
