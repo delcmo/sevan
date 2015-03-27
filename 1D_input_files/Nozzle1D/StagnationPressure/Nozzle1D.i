@@ -10,7 +10,7 @@ viscosity_name = ENTROPY
 diffusion_name = ENTROPY
 Ce = 1.
 Cjump_liquid = 1.
-Cjump_gas = 5.
+Cjump_gas = 2.5 # 5.
 Calpha = 1.
 ###### Mass and heat transfer ######
 isJumpOn = false
@@ -135,7 +135,7 @@ length = 1.
 [Mesh]
   type = GeneratedMesh
   dim = 1
-  nx = 300
+  nx = 100
   xmin = 0
   xmax = 1
   block_id = '0'

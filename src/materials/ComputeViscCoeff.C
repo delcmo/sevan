@@ -215,7 +215,16 @@ ComputeViscCoeff::computeQpProperties()
             norm = alpha_var;
             beta_e = h*h*(std::fabs(residual)+jump) / norm;
 //            beta_e += h*h*std::fabs(vel*_grad_area[_qp])/_area[_qp];
-            
+//            if (std::fabs(residual)>1e-3) {
+//                std::cout<<"$$$$$$$$$$$$$$$$$"<<std::endl;
+//                std::cout<<"alpha="<<_alpha_l[_qp]<<std::endl;
+//                std::cout<<"alpha old="<<_alpha_l_old[_qp]<<std::endl;
+//                std::cout<<"alpha older="<<_alpha_l_older[_qp]<<std::endl;
+//                std::cout<<"grad="<<_grad_alpha_l[_qp](0)<<std::endl;
+//                std::cout<<"vel="<<_velI[_qp]<<std::endl;
+//                std::cout<<"residual="<<residual<<std::endl;
+//                std::cout<<"pps="<<norm<<std::endl;
+//            }
         /** Compute viscosity coefficient for continuity, momentum and energy equations: **/
             // Entropy residual:
             residual = 0.;

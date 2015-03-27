@@ -8,33 +8,34 @@
 order = FIRST
 
 ###### Stabilization #######
-viscosity_name = FIRST_ORDER # ENTROPY
+viscosity_name = FIRST_ORDER
 diffusion_name = ENTROPY
 Cmax = 0.5
 Ce = 1.
-Cjump_liquid = 1.
-Cjump_gas = 1.
-Calpha = 1.
+Cjump_liquid = 5.
+Cjump_gas = 5.
+Calpha = 5.
 isShock = true
 isJumpOn = true
+Aint = 1.e4
 
 ###### Initial Conditions #######
-pressure_init_left = 1.e5
+pressure_init_left = 1.e6
 pressure_init_right = 1.e5
-vel_init_left = 100.
-vel_init_right = 100.
+vel_init_left = 0.
+vel_init_right = 0.
 #temp_init_left = 70600
 #temp_init_right = 70600
 #temp_init_left_gas = 8.e5
 #temp_init_right_gas = 8.e5
-rho_init_left_liq = 1000.
-rho_init_right_liq = 1000.
-rho_init_left_gas = 10.
-rho_init_right_gas = 10.
-alpha_init_left = 0.99 # 0.999
-alpha_init_right = 0.01 # 0.001
+rho_init_left_liq = 10.
+rho_init_right_liq = 10.
+rho_init_left_gas = 1.
+rho_init_right_gas = 1.
+alpha_init_left = 0.5
+alpha_init_right = 0.5
 membrane = 0.5
-length = 0.
+length = 0.001
 []
 
 #############################################################################
@@ -55,8 +56,8 @@ length = 0.
 
   [./eos_liq]
     type = EquationOfState
-    gamma = 4.4
-    Pinf = 6.e8
+    gamma = 3.
+    Pinf = 0.
     q = 0.
     Cv = 2.5
     q_prime = 0.
@@ -90,10 +91,45 @@ length = 0.
     execute_on = timestep_begin
   [../]
 
+  [./JumpGradPressSmoothLiq]
+    type = SmoothFunction
+    variable = jump_grad_press_aux_l
+    var_name = jump_grad_press_smooth_aux_l
+    execute_on = timestep_begin
+  [../]
+
+  [./JumpGradDensSmoothLiq]
+    type = SmoothFunction
+    variable = jump_grad_dens_aux_l
+    var_name = jump_grad_dens_smooth_aux_l
+    execute_on = timestep_begin
+  [../]
+
+  [./JumpGradPressSmoothGas]
+    type = SmoothFunction
+    variable = jump_grad_press_aux_g
+    var_name = jump_grad_press_smooth_aux_g
+    execute_on = timestep_begin
+  [../]
+
+  [./JumpGradDensSmoothGas]
+    type = SmoothFunction
+    variable = jump_grad_dens_aux_g
+    var_name = jump_grad_dens_smooth_aux_g
+    execute_on = timestep_begin
+  [../]
+
   [./JumpGradAlpha]
     type = JumpGradientInterface
     variable = alpha_aux_l
-    jump_name = jump_grad_alpha_aux
+    jump_name = jump_grad_alpha_aux_l
+    execute_on = timestep_begin
+  [../]
+  
+  [./JumpGradAlphaSmoothLiq]
+    type = SmoothFunction
+    variable = jump_grad_alpha_aux_l
+    var_name = jump_grad_alpha_smooth_aux_l
     execute_on = timestep_begin
   [../]
 []
@@ -102,9 +138,12 @@ length = 0.
 [Mesh]
   type = GeneratedMesh
   dim = 1
-  nx = 200
+  nx = 500
+  ny = 1
   xmin = 0
   xmax = 1
+  ymin = 0
+  ymax = 1
   block_id = '0'
 []
 
@@ -117,7 +156,7 @@ length = 0.
 ####### LIQUID PHASE ########
   [./alA_l]
     family = LAGRANGE
-    scaling = 1e-2
+    scaling = 1e+0
     [./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -127,7 +166,7 @@ length = 0.
 
   [./alrhoA_l]
     family = LAGRANGE
-    scaling = 1e-8
+    scaling = 1e-2
 	[./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -137,7 +176,7 @@ length = 0.
 
   [./alrhouA_l]
     family = LAGRANGE
-    scaling = 1e-8
+    scaling = 1e-4
 	[./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -147,7 +186,7 @@ length = 0.
 
   [./alrhoEA_l]
     family = LAGRANGE
-    scaling = 1e-10
+    scaling = 1e-6
 	[./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -158,7 +197,7 @@ length = 0.
 ####### VAPOR PHASE ########
   [./alrhoA_g]
     family = LAGRANGE
-    scaling = 1e-8
+    scaling = 1e-2
     [./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -169,7 +208,7 @@ length = 0.
 
   [./alrhouA_g]
     family = LAGRANGE
-    scaling = 1e-8
+    scaling = 1e-4
     [./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -180,7 +219,7 @@ length = 0.
 
   [./alrhoEA_g]
     family = LAGRANGE
-    scaling = 1e-10
+    scaling = 1e-6
     [./InitialCondition]
         type = ConservativeVariables1DXIC
         area = area
@@ -497,7 +536,7 @@ length = 0.
     order = CONSTANT
   [../]
 
-  [./jump_grad_alpha_aux]
+  [./jump_grad_alpha_smooth_aux_l]
     family = MONOMIAL
     order = CONSTANT
   [../]
@@ -522,9 +561,9 @@ length = 0.
       family = LAGRANGE
    [../]
 
-   [./temperature_aux_l]
+  [./mach_aux_l]
     family = LAGRANGE
-   [../]
+  [../]
 
   [./mu_aux_l]
     family = MONOMIAL
@@ -560,6 +599,16 @@ length = 0.
     family = MONOMIAL
     order = CONSTANT
   [../]
+
+  [./jump_grad_press_smooth_aux_l]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./jump_grad_dens_smooth_aux_l]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
 ######### Gas phase ##########
   [./velocity_x_aux_g]
     family = LAGRANGE
@@ -581,7 +630,7 @@ length = 0.
     family = LAGRANGE
   [../]
 
-  [./temperature_aux_g]
+  [./mach_aux_g]
     family = LAGRANGE
   [../]
 
@@ -611,6 +660,16 @@ length = 0.
   [../]
 
   [./jump_grad_dens_aux_g]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./jump_grad_press_smooth_aux_g]
+    family = MONOMIAL
+    order = CONSTANT
+  [../]
+
+  [./jump_grad_dens_smooth_aux_g]
     family = MONOMIAL
     order = CONSTANT
   [../]
@@ -777,11 +836,14 @@ length = 0.
     eos = eos_liq
   [../]
 
-  [./TempAKLiq]
-    type = TemperatureAux
-    variable = temperature_aux_l
+  [./MachAKLiq]
+    type = MachNumberAux
+    variable = mach_aux_l
+    alrhoA = alrhoA_l
+    alrhouA_x = alrhouA_l
     pressure = pressure_aux_l
-    density = density_aux_l
+    vf_liquid = alpha_aux_l
+    area = area_aux
     eos = eos_liq
   [../]
 
@@ -857,12 +919,16 @@ length = 0.
     isLiquid = false
   [../]
 
-  [./TempAKGas]
-    type = TemperatureAux
-    variable = temperature_aux_g
+  [./MachAKGas]
+    type = MachNumberAux
+    variable = mach_aux_g
+    alrhoA = alrhoA_g
+    alrhouA_x = alrhouA_g
+    vf_liquid = alpha_aux_l
     pressure = pressure_aux_g
-    density = density_aux_g
+    area = area_aux
     eos = eos_gas
+    isLiquid = false
   [../]
 
   [./MuAKGas]
@@ -903,9 +969,9 @@ length = 0.
     velocity_x = velocity_x_aux_l
     pressure = pressure_aux_l
     density = density_aux_l
-    jump_grad_press = jump_grad_press_aux_l
-    jump_grad_dens = jump_grad_dens_aux_l
-    jump_grad_alpha = jump_grad_alpha_aux
+    jump_grad_press = jump_grad_press_smooth_aux_l
+    jump_grad_dens = jump_grad_dens_smooth_aux_l # jump_grad_dens_aux_l
+    jump_grad_alpha = jump_grad_alpha_smooth_aux_l # jump_grad_alpha_aux
     vf_liquid = alpha_aux_l
     eos = eos_liq
     rhov2_PPS_name = PpsRhoVel2Liq
@@ -918,8 +984,8 @@ length = 0.
     velocity_x = velocity_x_aux_g
     pressure = pressure_aux_g
     density = density_aux_g
-    jump_grad_press = jump_grad_press_aux_g
-    jump_grad_dens = jump_grad_dens_aux_g
+    jump_grad_press = jump_grad_press_smooth_aux_g # jump_grad_press_aux_g
+    jump_grad_dens = jump_grad_dens_smooth_aux_g # jump_grad_dens_aux_g
     vf_liquid = alpha_aux_l
     eos = eos_gas
     isLiquid = false
@@ -930,7 +996,6 @@ length = 0.
   [./InterfacialRelaxationTransfer]
     type = InterfacialRelaxationTransfer
     block = '0'
-    Aint = 0.
     velocity_x_liq = velocity_x_aux_l
     pressure_liq = pressure_aux_l
     density_liq = density_aux_l
@@ -1151,7 +1216,7 @@ length = 0.
     line_search = 'default'
     petsc_options = '-snes_ksp_ew'
     petsc_options_iname = '-mat_fd_coloring_err  -mat_fd_type  -mat_mffd_type'
-    petsc_options_value = '1.e-10       ds             ds'
+    petsc_options_value = '1.e-12       ds             ds'
     #petsc_options = '-snes_mf_operator -ksp_converged_reason -ksp_monitor -snes_ksp_ew'
     #petsc_options_iname = '-pc_type'
     #petsc_options_value = 'lu'
@@ -1175,19 +1240,19 @@ length = 0.
 [Executioner]
   type = Transient   # Here we use the Transient Executioner
   scheme = 'bdf2'
-  num_steps = 1
-  end_time = 3.e-3
+  #num_steps = 10
+  end_time = 305.e-6
   dt = 1e-7
   dtmin = 1e-9
   l_tol = 1e-8
-  nl_rel_tol = 1e-9
-  nl_abs_tol = 1e-7
+  nl_rel_tol = 1e-14
+  nl_abs_tol = 1e-8
   l_max_its = 50
   nl_max_its = 20
   [./TimeStepper]
     type = FunctionDT
-    time_t =  '0      1.e-4  7.e-4'
-    time_dt = '1.e-5  1.e-5  1.e-5'
+    time_t =  '0      1.e-6  5.e-6'
+    time_dt = '5.e-7  5.e-7  5.e-7'
   [../]
   [./Quadrature]
     type = GAUSS

@@ -45,6 +45,7 @@
 #include "ElementAverageAbsValue.h"
 #include "ElementIntegralAbsVariablePostprocessor.h"
 #include "ElementMaxDuDtValue.h"
+#include "TimeStepCFL.h"
 // UserObjects
 #include "EquationOfState.h"
 #include "JumpGradientInterface.h"
@@ -127,6 +128,7 @@ SevanApp::registerObjects(Factory & factory)
     registerPostprocessor(ElementAverageAbsValue);
     registerPostprocessor(ElementIntegralAbsVariablePostprocessor);
     registerPostprocessor(ElementMaxDuDtValue);
+    registerPostprocessor(TimeStepCFL);
     //UserObjects
     registerUserObject(EquationOfState);
     registerUserObject(JumpGradientInterface);

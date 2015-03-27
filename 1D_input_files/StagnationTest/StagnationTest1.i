@@ -18,16 +18,16 @@ isJumpOn = false
 isMassOn = false
 isHeatOn = false
 isShock = false
-Aint = 0.
+Aint = 2000.
 gravity = '9.8, 0.0, 0.0'
 
 ###### Initial Conditions #######
-pressure_init_left = 1.e6
-pressure_init_right = 1.e6
+pressure_init_left = 7.e6
+pressure_init_right = 7.e6
 vel_init_left = 0.
 vel_init_right = 0.
-temp_init_left = 300.
-temp_init_right = 300.
+temp_init_left = 517.
+temp_init_right = 517.
 alpha_init_left = 0.5
 alpha_init_right = 0.5
 membrane = 0.5
@@ -1153,13 +1153,13 @@ length = 0.
 [Executioner]
   type = Transient
   scheme = 'bdf2'
-  num_steps = 100
-  end_time = 1.
+#  num_steps = 100
+  end_time = 50.
   dt = 1.e-2
   dtmin = 1e-9
   l_tol = 1e-8
   nl_rel_tol = 1e-10
-  nl_abs_tol = 1e-7
+  nl_abs_tol = 1e-6
   l_max_its = 50
   nl_max_its = 10
 [./TimeStepper]
@@ -1169,7 +1169,7 @@ length = 0.
 #    time_t =  '0.      1.e-2    2.e-2   4.e-2   0.56'
 #    time_dt = '1.e-4   1.e-4    1.e-3   1.e-2   1.e-2'
     time_t =  '0.      1.e-4    3.e-2   1.e-1   0.56'
-    time_dt = '1.e-4   1.e-2    1.e-2   1.e-2   1.e-2'
+    time_dt = '1.e-4   1.e-1    1.e-1   1.e-1   1.e-1'
   [../]
   [./Quadrature]
     type = GAUSS
